@@ -1,5 +1,7 @@
 import { ShipPart } from './ship/ship';
 import Tile from './tile/tile';
+import Point from '../_shared/Point';
+
 class Board {
 	private _tiles: Array<Array<Tile>>;
 	constructor(xSize: number, ySize: number){
@@ -11,14 +13,14 @@ class Board {
 			}
 		}
 	}
-	#getTile(x: number, y: number): Tile {
-		return this._tiles[x][y];
+	#getTile(point: Point): Tile {
+		return this._tiles[point.x][point.y];
 	}
-	getTargeted(x: number, y: number): boolean {
-		return this.#getTile(x,y).targeted;
+	getTargeted(point: Point): boolean {
+		return this.#getTile(point).targeted;
 	}
-	getOccupied(x: number, y: number): ShipPart | null {
-		return this.#getTile(x,y).occupiedBy;
+	getOccupied(point: Point): ShipPart | null {
+		return this.#getTile(point).occupiedBy;
 	}
 }
 
