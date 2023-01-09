@@ -1,9 +1,11 @@
 class ShipPart {
-	private _parent: Ship;
 	private _damaged: boolean;
-	constructor(parent: Ship){
-		this._parent = parent;
+	parent: Ship;
+	partNum: number;
+	constructor(parent: Ship, partNum: number){
+		this.parent = parent;
 		this._damaged = false;
+		this.partNum = partNum;
 	}
 	get damaged(): boolean {
 		return this._damaged;
@@ -11,7 +13,7 @@ class ShipPart {
 	set damaged(bool: boolean){
 		if(bool && !this._damaged){
 			this._damaged = true;
-			this._parent.incrementDamagedParts();
+			this.parent.incrementDamagedParts();
 		}
 	}
 }
@@ -50,7 +52,7 @@ class Ship {
 	}
 	#addParts(numParts: number){
 		for(let i = 0; i < numParts; i++){
-			this.parts.push(new ShipPart(this));
+			this.parts.push(new ShipPart(this, i));
 		}
 	}
 	isAfloat(): boolean{
