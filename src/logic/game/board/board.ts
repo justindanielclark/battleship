@@ -29,6 +29,12 @@ class Board {
 	getOccupied(point: Point): ShipPart | null {
 		return this.#getTile(point).occupiedBy;
 	}
+	isOccupied(point: Point): boolean {
+		if(this.getOccupied(point)){
+			return true;
+		}
+		return false;
+	}
 	isValidPlacementLocation(startingLoc: Point, ship: Ship, orientation: Orientation): boolean {
 		let i = 0;
 		let isValid = true;
@@ -36,6 +42,9 @@ class Board {
 		const shipLength = ship.parts.length;
 		while(isValid && i < shipLength){
 			isValid = this.#isWithinValidBounds(point);
+			if(isValid){
+				isValid = !this.isOccupied(point);
+			}
 			if(orientation === 'NS'){
 				point.y++;
 			}
@@ -45,6 +54,19 @@ class Board {
 			i++;
 		}
 		return isValid;
+	}
+	addShip(startingLoc: Point, ship: Ship, orientation: Orientation): void {
+		const point = startingLoc.deepCopy();
+		if(this.isValidPlacementLocation(startingLoc, ship, orientation)){
+			for(let i = 0; i < ship.parts.length; i++){
+				this.#getTile(point).occupiedBy = ship.parts[i];
+				if(orientation === 'NS'){
+					point.y++;
+				} {
+					point.x++;
+				}
+			}
+		}
 	}
 }
 
