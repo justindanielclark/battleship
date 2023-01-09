@@ -6,12 +6,18 @@ module.exports = {
 	},
 	'ignorePatterns': [
 		'*.config.js',
+		'*.config.json',
 		'node_modules',
 		'dist',
+		'.prettierignore',
+		'.prettierrc.json',
+		'package-lock.json',
+		'package.json',
 	],
 	'extends': [
 		'eslint:recommended',
-		'plugin:@typescript-eslint/recommended'
+		'plugin:@typescript-eslint/recommended',
+		'prettier',
 	],
 	'overrides': [
 	],
@@ -24,21 +30,6 @@ module.exports = {
 		'@typescript-eslint'
 	],
 	'rules': {
-		'indent': [
-			'error',
-			'tab', 
-			{
-				'SwitchCase': 1,
-			}
-		],
-		'linebreak-style': [
-			'error',
-			'unix'
-		],
-		'quotes': [
-			'error',
-			'single'
-		],
 		'semi': [
 			'error',
 			'always'
