@@ -1,4 +1,5 @@
 type ShipType = 'carrier' | 'battleship' | 'cruiser' | 'submarine' | 'destroyer';
+type Orientation = 'NS' | 'EW';
 
 class ShipPart {
 	private _damaged: boolean;
@@ -66,5 +67,5 @@ class Ship {
 	}
 }
 
-export {Ship, ShipPart, ShipType};
+export {Ship, ShipPart, ShipType, Orientation};
 export default Ship;
