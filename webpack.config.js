@@ -41,6 +41,6 @@ module.exports = {
 		path: path.resolve(__dirname, 'dist'),
 	},
 	plugins: [new HtmlWebpackPlugin({
-		title: 'Webpack with TS and Tailwind'
+		title: 'Battleship'
 	})],
 };

@@ -4,6 +4,7 @@ document.body.classList.add("bg-stone-800", "text-slate-200");
 
 const installedULheader = document.createElement("h1");
 installedULheader.innerText = "The following are installed and ready to go:";
+installedULheader.classList.add('font-bold');
 const installedUL = document.createElement("ul");
 const installedULmessages = [
   "Webpack",
