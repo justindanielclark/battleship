@@ -1,3 +1,5 @@
+type ShipType = 'carrier' | 'battleship' | 'cruiser' | 'submarine' | 'destroyer';
+
 class ShipPart {
 	private _damaged: boolean;
 	parent: Ship;
@@ -19,14 +21,15 @@ class ShipPart {
 }
 
 class Ship {
+	shipType: ShipType;
 	damagedParts: number;
 	parts: Array<ShipPart>;
 	constructor(
-		shipType: 'carrier' | 'battleship' | 'cruiser' | 'submarine' | 'destroyer',
+		shipType: ShipType
 	){
 		this.damagedParts = 0;
 		this.parts = [];
-
+		this.shipType = shipType;
 		switch(shipType){
 			case 'carrier': {
 				this.#addParts(5);
@@ -63,5 +66,5 @@ class Ship {
 	}
 }
 
-export {Ship, ShipPart};
+export {Ship, ShipPart, ShipType};
 export default Ship;
