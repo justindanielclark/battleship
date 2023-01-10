@@ -1,9 +1,4 @@
-type ShipType =
-  | "carrier"
-  | "battleship"
-  | "cruiser"
-  | "submarine"
-  | "destroyer";
+type ShipType = "carrier" | "battleship" | "cruiser" | "submarine" | "destroyer";
 type Orientation = "NS" | "EW";
 
 class ShipPart {
