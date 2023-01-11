@@ -26,11 +26,11 @@ class Board {
   getTargeted(point: Point): boolean {
     return this.#getTile(point).targeted;
   }
-	setTargeted(point: Point, bool: boolean): void {
-		if(this.#isWithinValidBounds(point)){
-			this.#getTile(point).targeted = bool;
-		}
-	}
+  setTargeted(point: Point, bool: boolean): void {
+    if (this.#isWithinValidBounds(point)) {
+      this.#getTile(point).targeted = bool;
+    }
+  }
   getOccupied(point: Point): ShipPart | null {
     return this.#getTile(point).occupiedBy;
   }
