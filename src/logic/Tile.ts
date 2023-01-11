@@ -1,4 +1,4 @@
-import { ShipPart } from "../ship/ship";
+import { ShipPart } from "./Ship";
 
 class Tile {
   occupiedBy: null | ShipPart;

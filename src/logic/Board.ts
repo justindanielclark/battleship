@@ -1,6 +1,6 @@
-import { Ship, ShipPart, Orientation } from "./ship/ship";
-import Tile from "./tile/tile";
-import Point from "../_shared/Point";
+import { Ship, ShipPart, Orientation } from "./Ship";
+import Tile from "./Tile";
+import Point from "./Point";
 
 class Board {
   private _tiles: Array<Array<Tile>>;
@@ -21,7 +21,12 @@ class Board {
     return this._tiles[point.x][point.y];
   }
   #isWithinValidBounds(point: Point): boolean {
-    return !(point.x < 0 || point.x >= this._xSize || point.y < 0 || point.y >= this._ySize);
+    return !(
+      point.x < 0 ||
+      point.x >= this._xSize ||
+      point.y < 0 ||
+      point.y >= this._ySize
+    );
   }
   getTargeted(point: Point): boolean {
     return this.#getTile(point).targeted;
@@ -40,7 +45,11 @@ class Board {
     }
     return false;
   }
-  isValidPlacementLocation(startingLoc: Point, ship: Ship, orientation: Orientation): boolean {
+  isValidPlacementLocation(
+    startingLoc: Point,
+    ship: Ship,
+    orientation: Orientation
+  ): boolean {
     let i = 0;
     let isValid = true;
     const point = startingLoc.deepCopy();

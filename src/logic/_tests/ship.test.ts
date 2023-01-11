@@ -1,4 +1,4 @@
-import Ship from "../ship/ship";
+import Ship from "../Ship";
 
 const battleship = new Ship("battleship");
 const carrier = new Ship("carrier");

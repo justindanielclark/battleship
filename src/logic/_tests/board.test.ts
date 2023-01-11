@@ -1,6 +1,6 @@
-import Point from "../../_shared/Point";
-import { Board } from "../board";
-import { Ship } from "../ship/ship";
+import Point from "../Point";
+import { Board } from "../Board";
+import { Ship } from "../Ship";
 
 describe("the board created by new Board", () => {
   test("sees valid locations to add ships", () => {
