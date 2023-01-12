@@ -23,11 +23,15 @@ const ctx = canvas.get2dRenderingContext();
 const modelSprites = ModelSprites();
 const textSprites = TextSprites();
 const renderer = Renderer(canvasData, ctx, modelSprites, textSprites);
-renderer.updateDimensions();
+renderer.updateViewSizes();
 renderer.render();
 
 window.addEventListener("resize", () => {
   canvas.update();
-  renderer.updateDimensions();
+  renderer.updateViewSizes();
   renderer.render();
 });
+
+setTimeout(() => {
+  renderer.render();
+}, 100);
