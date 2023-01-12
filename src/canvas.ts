@@ -1,0 +1,77 @@
+type CanvasConfig = {
+  orientation: "portrait" | "landscape";
+  width: number;
+  height: number;
+};
+
+const canvas = () => {
+  const _self = document.createElement("canvas");
+  _self.classList.add("cursor-none");
+  const _data: CanvasConfig = {
+    orientation: "portrait",
+    width: 0,
+    height: 0,
+  };
+  function getConfig(): CanvasConfig {
+    return _data;
+  }
+  function getHTMLCanvasElement(): HTMLCanvasElement {
+    return _self;
+  }
+  function get2dRenderingContext(): CanvasRenderingContext2D {
+    const renderingContext = _self.getContext("2d");
+    if (
+      !renderingContext ||
+      !(renderingContext instanceof CanvasRenderingContext2D)
+    ) {
+      throw new Error("Unable to retrieve CanvasRenderingContext2D");
+    }
+    return renderingContext;
+  }
+  function _updateCanvasConfig(): void {
+    let greater;
+    let lesser;
+    if (window.innerHeight > window.innerWidth) {
+      ({ innerHeight: greater, innerWidth: lesser } = window);
+      _data.orientation = "portrait";
+    } else {
+      ({ innerHeight: lesser, innerWidth: greater } = window);
+      _data.orientation = "landscape";
+    }
+    while (lesser % 3 !== 0) {
+      lesser--;
+    }
+    if ((lesser * 4) / 3 > greater) {
+      while (greater % 4 !== 0) {
+        greater--;
+      }
+      lesser = (greater * 3) / 4;
+    } else {
+      greater = (lesser / 3) * 4;
+    }
+    if (_data.orientation === "portrait") {
+      _data.height = greater;
+      _data.width = lesser;
+    } else {
+      _data.width = greater;
+      _data.height = lesser;
+    }
+  }
+  function _updateSize(): void {
+    _self.height = _data.height;
+    _self.width = _data.width;
+  }
+  function update(): void {
+    _updateCanvasConfig();
+    _updateSize();
+  }
+  return {
+    get2dRenderingContext,
+    getHTMLCanvasElement,
+    getConfig,
+    update,
+  };
+};
+
+export { canvas, CanvasConfig };
+export default canvas;
