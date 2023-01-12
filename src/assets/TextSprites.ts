@@ -237,5 +237,5 @@ const textSprites = (): TextSprites => {
   return Sprites;
 };
 
-export { textSprites, TextSprites };
+export { textSprites, TextSprites, validTextSpriteVals };
 export default textSprites;
