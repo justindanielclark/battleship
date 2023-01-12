@@ -95,10 +95,13 @@ const renderer = (
       _drawSprite(
         textSprites[Letters[i]] as ImageBitmap,
         new Point(
-          _mainView.start.x,
-          _fractional + _fractional * i + _mainView.start.y
+          _mainView.start.x + 8 * _mainView.scale,
+          _fractional +
+            _fractional * i +
+            _mainView.start.y +
+            8 * _mainView.scale
         ),
-        _mainView.scale * 2,
+        _mainView.scale,
         0
       );
     }
@@ -106,13 +109,141 @@ const renderer = (
       _drawSprite(
         textSprites[Numbers[i]] as ImageBitmap,
         new Point(
-          _fractional + _fractional * i + _mainView.start.x,
-          _mainView.start.y
+          _fractional +
+            _fractional * i +
+            _mainView.start.x +
+            8 * _mainView.scale,
+          _mainView.start.y + 8 * _mainView.scale
         ),
-        _mainView.scale * 2,
+        _mainView.scale,
         0
       );
     }
+    //10
+    _drawSprite(
+      textSprites["1"] as ImageBitmap,
+      new Point(
+        _fractional +
+          _fractional * 10 +
+          _mainView.start.x +
+          8 * _mainView.scale,
+        _mainView.start.y * _mainView.scale
+      ),
+      _mainView.scale,
+      0
+    );
+    _drawSprite(
+      textSprites["0"] as ImageBitmap,
+      new Point(
+        _fractional +
+          _fractional * 10 +
+          _mainView.start.x +
+          8 * _mainView.scale,
+        _mainView.start.y * _mainView.scale + 8 * _mainView.scale
+      ),
+      _mainView.scale,
+      0
+    );
+    //11
+    _drawSprite(
+      textSprites["1"] as ImageBitmap,
+      new Point(
+        _fractional +
+          _fractional * 11 +
+          _mainView.start.x +
+          8 * _mainView.scale,
+        _mainView.start.y * _mainView.scale
+      ),
+      _mainView.scale,
+      0
+    );
+    _drawSprite(
+      textSprites["1"] as ImageBitmap,
+      new Point(
+        _fractional +
+          _fractional * 11 +
+          _mainView.start.x +
+          8 * _mainView.scale,
+        _mainView.start.y * _mainView.scale + 8 * _mainView.scale
+      ),
+      _mainView.scale,
+      0
+    );
+    //12
+    _drawSprite(
+      textSprites["1"] as ImageBitmap,
+      new Point(
+        _fractional +
+          _fractional * 12 +
+          _mainView.start.x +
+          8 * _mainView.scale,
+        _mainView.start.y * _mainView.scale
+      ),
+      _mainView.scale,
+      0
+    );
+    _drawSprite(
+      textSprites["2"] as ImageBitmap,
+      new Point(
+        _fractional +
+          _fractional * 12 +
+          _mainView.start.x +
+          8 * _mainView.scale,
+        _mainView.start.y * _mainView.scale + 8 * _mainView.scale
+      ),
+      _mainView.scale,
+      0
+    );
+    //13
+    _drawSprite(
+      textSprites["1"] as ImageBitmap,
+      new Point(
+        _fractional +
+          _fractional * 13 +
+          _mainView.start.x +
+          8 * _mainView.scale,
+        _mainView.start.y * _mainView.scale
+      ),
+      _mainView.scale,
+      0
+    );
+    _drawSprite(
+      textSprites["3"] as ImageBitmap,
+      new Point(
+        _fractional +
+          _fractional * 13 +
+          _mainView.start.x +
+          8 * _mainView.scale,
+        _mainView.start.y * _mainView.scale + 8 * _mainView.scale
+      ),
+      _mainView.scale,
+      0
+    );
+    //14
+    _drawSprite(
+      textSprites["1"] as ImageBitmap,
+      new Point(
+        _fractional +
+          _fractional * 14 +
+          _mainView.start.x +
+          8 * _mainView.scale,
+        _mainView.start.y * _mainView.scale
+      ),
+      _mainView.scale,
+      0
+    );
+    _drawSprite(
+      textSprites["4"] as ImageBitmap,
+      new Point(
+        _fractional +
+          _fractional * 14 +
+          _mainView.start.x +
+          8 * _mainView.scale,
+        _mainView.start.y * _mainView.scale + 8 * _mainView.scale
+      ),
+      _mainView.scale,
+      0
+    );
   }
   function _drawOffensiveBoard() {
     for (let i = 0; i < 15; i++) {
