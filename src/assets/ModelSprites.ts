@@ -1,25 +1,8 @@
 import SpriteSheet from "./Spritesheet.png";
 
-type ModelSprites = {
-  loaded: boolean;
-  carrier: Array<ImageBitmap>;
-  battleship: Array<ImageBitmap>;
-  cruiser: Array<ImageBitmap>;
-  submarine: Array<ImageBitmap>;
-  destroyer: Array<ImageBitmap>;
-  waterTiles: Array<ImageBitmap>;
-  radarTiles: Array<ImageBitmap>;
-};
-const modelSprites = (): ModelSprites => {
+const modelSprites = (): ModelSpritesLoaded => {
   const Sprites: ModelSprites = {
     loaded: false,
-    carrier: [],
-    battleship: [],
-    cruiser: [],
-    submarine: [],
-    destroyer: [],
-    waterTiles: [],
-    radarTiles: [],
   };
   const SpriteSheetImage = new Image();
   SpriteSheetImage.src = SpriteSheet;
@@ -53,7 +36,11 @@ const modelSprites = (): ModelSprites => {
       //Radar Tiles
       createImageBitmap(SpriteSheetImage, 48, 64, 16, 16),
       createImageBitmap(SpriteSheetImage, 64, 64, 16, 16),
+      //Damage Tiles
+      createImageBitmap(SpriteSheetImage, 48, 32, 16, 16),
+      createImageBitmap(SpriteSheetImage, 64, 32, 16, 16),
     ]).then((sprites) => {
+      Sprites.carrier = [];
       Sprites.carrier.push(
         sprites[0],
         sprites[1],
@@ -61,18 +48,25 @@ const modelSprites = (): ModelSprites => {
         sprites[3],
         sprites[4]
       );
+      Sprites.battleship = [];
       Sprites.battleship.push(sprites[5], sprites[6], sprites[7], sprites[8]);
+      Sprites.cruiser = [];
       Sprites.cruiser.push(sprites[9], sprites[10], sprites[11]);
+      Sprites.submarine = [];
       Sprites.submarine.push(sprites[12], sprites[13], sprites[14]);
+      Sprites.destroyer = [];
       Sprites.destroyer.push(sprites[15], sprites[16]);
+      Sprites.waterTiles = [];
       Sprites.waterTiles.push(sprites[17], sprites[18]);
+      Sprites.radarTiles = [];
       Sprites.radarTiles.push(sprites[19], sprites[20]);
+      Sprites.damageTiles = [];
+      Sprites.damageTiles.push(sprites[21], sprites[22]);
       Sprites.loaded = true;
     });
   });
-
-  return Sprites;
+  return Sprites as ModelSpritesLoaded;
 };
 
-export { modelSprites, ModelSprites };
+export { modelSprites };
 export default modelSprites;

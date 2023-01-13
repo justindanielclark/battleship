@@ -1,12 +1,5 @@
-type CanvasConfig = {
-  orientation: "portrait" | "landscape";
-  width: number;
-  height: number;
-};
-
 const canvas = () => {
   const _self = document.createElement("canvas");
-  _self.classList.add("cursor-none");
   const _data: CanvasConfig = {
     orientation: "portrait",
     width: 0,
@@ -73,5 +66,5 @@ const canvas = () => {
   };
 };
 
-export { canvas, CanvasConfig };
+export { canvas };
 export default canvas;
