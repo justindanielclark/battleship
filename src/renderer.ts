@@ -1,22 +1,28 @@
-import { CanvasConfig } from "./canvas";
-import { ModelSprites } from "./assets/ModelSprites";
-import { TextSprites, validTextSpriteVals } from "./assets/TextSprites";
 import Point from "./logic/Point";
 import Board from "./logic/Board";
+import { Game } from "./game";
+import { ShipPart } from "./logic/Ship";
+
+type View = {
+  start: Point;
+  end: Point;
+  scale: number;
+};
 
 const renderer = (
   canvasData: CanvasConfig,
   ctx: CanvasRenderingContext2D,
-  modelSprites: ModelSprites,
-  textSprites: TextSprites
+  sprites: { model: ModelSpritesLoaded; text: TextSpritesLoaded },
+  game: Game
 ) => {
+  const { model, text } = sprites;
   let _fractional = 0;
-  const _drawerView = {
+  const _drawerView: View = {
     start: new Point(0, 0),
     end: new Point(0, 0),
     scale: 0,
   };
-  const _mainView = {
+  const _mainView: View = {
     start: new Point(0, 0),
     end: new Point(0, 0),
     scale: 0,
@@ -38,220 +44,78 @@ const renderer = (
       _mainView.end.x,
       _mainView.end.y
     );
-    if (modelSprites.loaded && textSprites.loaded) {
-      // _drawDefensiveBoard();
-      _drawOffensiveBoard();
-      _drawTileDesignations();
+    switch (game.getState()) {
+      case "player1SettingPieces": {
+        _drawDefensiveBoard(game.getBoard(0));
+
+        break;
+      }
+      case "player2SettingPieces": {
+        break;
+      }
     }
   }
-  function _drawDefensiveBoard() {
+  function _drawDefensiveBoard(board: Board) {
     for (let i = 0; i < 15; i++) {
       for (let j = 0; j < 15; j++) {
-        _drawSprite(
-          (i + j) % 2 === 0
-            ? modelSprites.waterTiles[0]
-            : modelSprites.waterTiles[1],
-          new Point(
-            _mainView.start.x + _fractional + _fractional * i,
-            _mainView.start.y + _fractional + _fractional * j
-          ),
-          _mainView.scale,
-          0
-        );
+        if (board.isOccupied(new Point(i, j))) {
+          const shipPart = board.getOccupied(new Point(i, j)) as ShipPart;
+          const ship = shipPart.parent;
+          const parentType = shipPart.parent.shipType;
+          const partNum = shipPart.partNum;
+          const damaged = shipPart.damaged;
+          if (damaged) {
+            _drawSprite(
+              (i + j) % 2 === 0 ? model.damageTiles[0] : model.damageTiles[1],
+              new Point(
+                _mainView.start.x + _fractional + _fractional * i,
+                _mainView.start.y + _fractional + _fractional * j
+              ),
+              _mainView.scale,
+              0
+            );
+          } else {
+            _drawSprite(
+              (i + j) % 2 === 0 ? model.waterTiles[0] : model.waterTiles[1],
+              new Point(
+                _mainView.start.x + _fractional + _fractional * i,
+                _mainView.start.y + _fractional + _fractional * j
+              ),
+              _mainView.scale,
+              0
+            );
+          }
+          _drawSprite(
+            model[parentType][partNum],
+            new Point(
+              _mainView.start.x + _fractional + _fractional * i,
+              _mainView.start.y + _fractional + _fractional * j
+            ),
+            _mainView.scale,
+            ship.orientation === "NS" ? 90 : 0
+          );
+        } else {
+          _drawSprite(
+            (i + j) % 2 === 0 ? model.waterTiles[0] : model.waterTiles[1],
+            new Point(
+              _mainView.start.x + _fractional + _fractional * i,
+              _mainView.start.y + _fractional + _fractional * j
+            ),
+            _mainView.scale,
+            0
+          );
+        }
       }
     }
   }
   function _drawTileDesignations() {
-    const Letters: Array<validTextSpriteVals> = [
-      "A",
-      "B",
-      "C",
-      "D",
-      "E",
-      "F",
-      "G",
-      "H",
-      "I",
-      "J",
-      "K",
-      "L",
-      "M",
-      "N",
-      "O",
-    ];
-    const Numbers: Array<validTextSpriteVals> = [
-      "0",
-      "1",
-      "2",
-      "3",
-      "4",
-      "5",
-      "6",
-      "7",
-      "8",
-      "9",
-    ];
-    for (let i = 0; i < Letters.length; i++) {
-      _drawSprite(
-        textSprites[Letters[i]] as ImageBitmap,
-        new Point(
-          _mainView.start.x + 8 * _mainView.scale,
-          _fractional +
-            _fractional * i +
-            _mainView.start.y +
-            8 * _mainView.scale
-        ),
-        _mainView.scale,
-        0
-      );
-    }
-    for (let i = 0; i < Numbers.length; i++) {
-      _drawSprite(
-        textSprites[Numbers[i]] as ImageBitmap,
-        new Point(
-          _fractional +
-            _fractional * i +
-            _mainView.start.x +
-            8 * _mainView.scale,
-          _mainView.start.y + 8 * _mainView.scale
-        ),
-        _mainView.scale,
-        0
-      );
-    }
-    //10
-    _drawSprite(
-      textSprites["1"] as ImageBitmap,
-      new Point(
-        _fractional +
-          _fractional * 10 +
-          _mainView.start.x +
-          8 * _mainView.scale,
-        _mainView.start.y * _mainView.scale
-      ),
-      _mainView.scale,
-      0
-    );
-    _drawSprite(
-      textSprites["0"] as ImageBitmap,
-      new Point(
-        _fractional +
-          _fractional * 10 +
-          _mainView.start.x +
-          8 * _mainView.scale,
-        _mainView.start.y * _mainView.scale + 8 * _mainView.scale
-      ),
-      _mainView.scale,
-      0
-    );
-    //11
-    _drawSprite(
-      textSprites["1"] as ImageBitmap,
-      new Point(
-        _fractional +
-          _fractional * 11 +
-          _mainView.start.x +
-          8 * _mainView.scale,
-        _mainView.start.y * _mainView.scale
-      ),
-      _mainView.scale,
-      0
-    );
-    _drawSprite(
-      textSprites["1"] as ImageBitmap,
-      new Point(
-        _fractional +
-          _fractional * 11 +
-          _mainView.start.x +
-          8 * _mainView.scale,
-        _mainView.start.y * _mainView.scale + 8 * _mainView.scale
-      ),
-      _mainView.scale,
-      0
-    );
-    //12
-    _drawSprite(
-      textSprites["1"] as ImageBitmap,
-      new Point(
-        _fractional +
-          _fractional * 12 +
-          _mainView.start.x +
-          8 * _mainView.scale,
-        _mainView.start.y * _mainView.scale
-      ),
-      _mainView.scale,
-      0
-    );
-    _drawSprite(
-      textSprites["2"] as ImageBitmap,
-      new Point(
-        _fractional +
-          _fractional * 12 +
-          _mainView.start.x +
-          8 * _mainView.scale,
-        _mainView.start.y * _mainView.scale + 8 * _mainView.scale
-      ),
-      _mainView.scale,
-      0
-    );
-    //13
-    _drawSprite(
-      textSprites["1"] as ImageBitmap,
-      new Point(
-        _fractional +
-          _fractional * 13 +
-          _mainView.start.x +
-          8 * _mainView.scale,
-        _mainView.start.y * _mainView.scale
-      ),
-      _mainView.scale,
-      0
-    );
-    _drawSprite(
-      textSprites["3"] as ImageBitmap,
-      new Point(
-        _fractional +
-          _fractional * 13 +
-          _mainView.start.x +
-          8 * _mainView.scale,
-        _mainView.start.y * _mainView.scale + 8 * _mainView.scale
-      ),
-      _mainView.scale,
-      0
-    );
-    //14
-    _drawSprite(
-      textSprites["1"] as ImageBitmap,
-      new Point(
-        _fractional +
-          _fractional * 14 +
-          _mainView.start.x +
-          8 * _mainView.scale,
-        _mainView.start.y * _mainView.scale
-      ),
-      _mainView.scale,
-      0
-    );
-    _drawSprite(
-      textSprites["4"] as ImageBitmap,
-      new Point(
-        _fractional +
-          _fractional * 14 +
-          _mainView.start.x +
-          8 * _mainView.scale,
-        _mainView.start.y * _mainView.scale + 8 * _mainView.scale
-      ),
-      _mainView.scale,
-      0
-    );
+    //todo
   }
   function _drawOffensiveBoard() {
     for (let i = 0; i < 15; i++) {
       for (let j = 0; j < 15; j++) {
         _drawSprite(
-          (i + j) % 2 === 0
-            ? modelSprites.radarTiles[0]
-            : modelSprites.radarTiles[1],
+          (i + j) % 2 === 0 ? model.radarTiles[0] : model.radarTiles[1],
           new Point(
             _mainView.start.x + _fractional + _fractional * i,
             _mainView.start.y + _fractional + _fractional * j
@@ -271,6 +135,7 @@ const renderer = (
     scale: number,
     angle: number
   ): void {
+    ctx.save();
     const scaledHeight = bitMap.height * scale;
     const scaledWidth = bitMap.width * scale;
     ctx.translate(drawLoc.x + scaledWidth / 2, drawLoc.y + scaledHeight / 2);
@@ -286,8 +151,9 @@ const renderer = (
       scaledWidth,
       scaledHeight
     );
-    ctx.rotate((-angle * Math.PI) / 180);
-    ctx.translate(-drawLoc.x - scaledWidth / 2, -drawLoc.y - scaledHeight / 2);
+    ctx.restore();
+    // ctx.rotate((-angle * Math.PI) / 180);
+    // ctx.translate(-drawLoc.x - scaledWidth / 2, -drawLoc.y - scaledHeight / 2);
   }
   function updateViewSizes(): void {
     if (canvasData.orientation === "landscape") {
