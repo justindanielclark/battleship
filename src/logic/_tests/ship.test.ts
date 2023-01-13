@@ -1,10 +1,10 @@
 import Ship from "../Ship";
 
-const battleship = new Ship("battleship");
-const carrier = new Ship("carrier");
-const cruiser = new Ship("cruiser");
-const submarine = new Ship("submarine");
-const destroyer = new Ship("destroyer");
+const battleship = new Ship("battleship", "NS");
+const carrier = new Ship("carrier", "NS");
+const cruiser = new Ship("cruiser", "NS");
+const submarine = new Ship("submarine", "EW");
+const destroyer = new Ship("destroyer", "NS");
 
 describe("the ships created by new Ship()", () => {
   test("have the right number of parts", () => {

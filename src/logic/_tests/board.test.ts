@@ -5,21 +5,21 @@ import { Ship } from "../Ship";
 describe("the board created by new Board", () => {
   test("sees valid locations to add ships", () => {
     const board = new Board(10, 10);
-    const carrier = new Ship("carrier");
-    const destroyer = new Ship("destroyer");
+    const carrier = new Ship("carrier", "NS");
+    const destroyer = new Ship("destroyer", "EW");
     const testCases = [
-      board.isValidPlacementLocation(new Point(0, 0), carrier, "NS"),
-      board.isValidPlacementLocation(new Point(1, 0), carrier, "NS"),
-      board.isValidPlacementLocation(new Point(4, 4), carrier, "NS"),
-      board.isValidPlacementLocation(new Point(0, 0), carrier, "EW"),
-      board.isValidPlacementLocation(new Point(3, 2), carrier, "EW"),
-      board.isValidPlacementLocation(new Point(4, 9), carrier, "EW"),
-      board.isValidPlacementLocation(new Point(0, 0), destroyer, "NS"),
-      board.isValidPlacementLocation(new Point(5, 8), destroyer, "NS"),
-      board.isValidPlacementLocation(new Point(3, 2), destroyer, "NS"),
-      board.isValidPlacementLocation(new Point(8, 6), destroyer, "EW"),
-      board.isValidPlacementLocation(new Point(0, 9), destroyer, "EW"),
-      board.isValidPlacementLocation(new Point(8, 9), destroyer, "EW"),
+      board.isValidPlacementLocation(new Point(0, 0), carrier),
+      board.isValidPlacementLocation(new Point(1, 0), carrier),
+      board.isValidPlacementLocation(new Point(4, 4), carrier),
+      board.isValidPlacementLocation(new Point(0, 0), carrier),
+      board.isValidPlacementLocation(new Point(3, 2), carrier),
+      board.isValidPlacementLocation(new Point(4, 9), carrier),
+      board.isValidPlacementLocation(new Point(0, 0), destroyer),
+      board.isValidPlacementLocation(new Point(5, 8), destroyer),
+      board.isValidPlacementLocation(new Point(3, 2), destroyer),
+      board.isValidPlacementLocation(new Point(8, 6), destroyer),
+      board.isValidPlacementLocation(new Point(0, 9), destroyer),
+      board.isValidPlacementLocation(new Point(8, 9), destroyer),
     ];
     expect(testCases[0]).toBe(true);
     expect(testCases[1]).toBe(true);
@@ -36,21 +36,21 @@ describe("the board created by new Board", () => {
   });
   test("sees invalid locations to add ships", () => {
     const board = new Board(10, 10);
-    const carrier = new Ship("carrier");
-    const destroyer = new Ship("destroyer");
+    const carrier = new Ship("carrier", "NS");
+    const destroyer = new Ship("destroyer", "EW");
     const testCases = [
-      board.isValidPlacementLocation(new Point(0, -1), carrier, "NS"),
-      board.isValidPlacementLocation(new Point(5, 9), carrier, "NS"),
-      board.isValidPlacementLocation(new Point(4, 7), carrier, "NS"),
-      board.isValidPlacementLocation(new Point(7, 0), carrier, "EW"),
-      board.isValidPlacementLocation(new Point(-1, 9), carrier, "EW"),
-      board.isValidPlacementLocation(new Point(6, 9), carrier, "EW"),
-      board.isValidPlacementLocation(new Point(-1, -1), destroyer, "NS"),
-      board.isValidPlacementLocation(new Point(9, 9), destroyer, "NS"),
-      board.isValidPlacementLocation(new Point(5, 10), destroyer, "NS"),
-      board.isValidPlacementLocation(new Point(9, 0), destroyer, "EW"),
-      board.isValidPlacementLocation(new Point(-1, 5), destroyer, "EW"),
-      board.isValidPlacementLocation(new Point(9, 9), destroyer, "EW"),
+      board.isValidPlacementLocation(new Point(0, -1), carrier),
+      board.isValidPlacementLocation(new Point(5, 9), carrier),
+      board.isValidPlacementLocation(new Point(4, 7), carrier),
+      board.isValidPlacementLocation(new Point(7, 0), carrier),
+      board.isValidPlacementLocation(new Point(-1, 9), carrier),
+      board.isValidPlacementLocation(new Point(6, 9), carrier),
+      board.isValidPlacementLocation(new Point(-1, -1), destroyer),
+      board.isValidPlacementLocation(new Point(9, 9), destroyer),
+      board.isValidPlacementLocation(new Point(5, 10), destroyer),
+      board.isValidPlacementLocation(new Point(9, 0), destroyer),
+      board.isValidPlacementLocation(new Point(-1, 5), destroyer),
+      board.isValidPlacementLocation(new Point(9, 9), destroyer),
     ];
     expect(testCases[0]).toBe(false);
     expect(testCases[1]).toBe(false);
@@ -67,10 +67,10 @@ describe("the board created by new Board", () => {
   });
   test("can add a ship at a valid location", () => {
     const board = new Board(10, 10);
-    const carrier = new Ship("carrier");
-    const carrier2 = new Ship("carrier");
-    board.addShip(new Point(0, 0), carrier, "NS");
-    board.addShip(new Point(1, 0), carrier2, "EW");
+    const carrier = new Ship("carrier", "NS");
+    const carrier2 = new Ship("carrier", "EW");
+    board.addShip(new Point(0, 0), carrier);
+    board.addShip(new Point(1, 0), carrier2);
     expect(board.getOccupied(new Point(0, 0))).toBe(carrier.parts[0]);
     expect(board.getOccupied(new Point(0, 1))).toBe(carrier.parts[1]);
     expect(board.getOccupied(new Point(0, 2))).toBe(carrier.parts[2]);
@@ -84,19 +84,53 @@ describe("the board created by new Board", () => {
   });
   test("will refuse to add a ship to an invalid location", () => {
     const board = new Board(10, 10);
-    const carrier = new Ship("carrier");
-    const battleship = new Ship("battleship");
-    const destroyer = new Ship("destroyer");
-    board.addShip(new Point(0, 0), carrier, "NS");
-    board.addShip(new Point(0, 0), battleship, "EW");
-    board.addShip(new Point(9, 9), destroyer, "NS");
+    const carrier = new Ship("carrier", "NS");
+    const battleship = new Ship("battleship", "EW");
+    const destroyer = new Ship("destroyer", "NS");
+    board.addShip(new Point(0, 0), carrier);
+    board.addShip(new Point(0, 0), battleship);
+    board.addShip(new Point(9, 9), destroyer);
     const testCase = [
-      board.getOccupied(new Point(0, 0)),
-      board.getOccupied(new Point(1, 0)),
-      board.getOccupied(new Point(9, 9)),
+      board.isOccupied(new Point(0, 0)),
+      board.isOccupied(new Point(1, 0)),
+      board.isOccupied(new Point(9, 9)),
     ];
-    expect(testCase[0]).toBe(carrier.parts[0]);
-    expect(testCase[1]).toBe(null);
-    expect(testCase[2]).toBe(null);
+    expect(testCase[0]).toBe(true);
+    expect(testCase[1]).toBe(false);
+    expect(testCase[2]).toBe(false);
+  });
+  test("is able to tell us when its is or is not alive", () => {
+    const board = new Board(10, 10);
+    const carrier = new Ship("carrier", "NS");
+    const destroyer = new Ship("destroyer", "EW");
+    board.addShip(new Point(0, 0), carrier);
+    const testCase = [];
+    testCase.push(board.isAlive());
+    board.target(new Point(0, 0));
+    testCase.push(board.isAlive());
+    board.target(new Point(0, 1));
+    testCase.push(board.isAlive());
+    board.target(new Point(0, 2));
+    testCase.push(board.isAlive());
+    board.target(new Point(0, 3));
+    testCase.push(board.isAlive());
+    board.target(new Point(0, 4));
+    testCase.push(board.isAlive());
+    board.addShip(new Point(1, 1), destroyer);
+    testCase.push(board.isAlive());
+    board.target(new Point(1, 1));
+    testCase.push(board.isAlive());
+    board.target(new Point(2, 1));
+    testCase.push(board.isAlive());
+
+    expect(testCase[0]).toBe(true);
+    expect(testCase[1]).toBe(true);
+    expect(testCase[2]).toBe(true);
+    expect(testCase[3]).toBe(true);
+    expect(testCase[4]).toBe(true);
+    expect(testCase[5]).toBe(false);
+    expect(testCase[6]).toBe(true);
+    expect(testCase[7]).toBe(true);
+    expect(testCase[8]).toBe(false);
   });
 });
