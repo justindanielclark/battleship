@@ -1,10 +1,10 @@
 import { ShipPart } from "./Ship";
 
 class Tile {
-  occupiedBy: null | ShipPart;
+  occupiedBy?: ShipPart;
   targeted: boolean;
   constructor() {
-    this.occupiedBy = null;
+    this.occupiedBy = undefined;
     this.targeted = false;
   }
 }
