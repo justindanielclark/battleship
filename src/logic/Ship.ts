@@ -1,4 +1,9 @@
-type ShipType = "carrier" | "battleship" | "cruiser" | "submarine" | "destroyer";
+type ShipType =
+  | "carrier"
+  | "battleship"
+  | "cruiser"
+  | "submarine"
+  | "destroyer";
 type Orientation = "NS" | "EW";
 
 class ShipPart {
@@ -22,13 +27,15 @@ class ShipPart {
 }
 
 class Ship {
-  shipType: ShipType;
-  damagedParts: number;
-  parts: Array<ShipPart>;
-  constructor(shipType: ShipType) {
+  public shipType: ShipType;
+  public damagedParts: number;
+  public parts: Array<ShipPart>;
+  public orientation: Orientation;
+  constructor(shipType: ShipType, orientation: Orientation) {
     this.damagedParts = 0;
     this.parts = [];
     this.shipType = shipType;
+    this.orientation = orientation;
     switch (shipType) {
       case "carrier": {
         this.#addParts(5);
