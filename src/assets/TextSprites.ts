@@ -51,17 +51,17 @@ const textSprites = (): TextSpritesLoaded => {
       createImageBitmap(textSpriteSheetImage, 104, 32, 8, 8), //m
       createImageBitmap(textSpriteSheetImage, 112, 32, 8, 8), //n
       createImageBitmap(textSpriteSheetImage, 120, 32, 8, 8), //o
-      createImageBitmap(textSpriteSheetImage, 8, 40, 8, 8), //p
-      createImageBitmap(textSpriteSheetImage, 16, 40, 8, 8), //q
-      createImageBitmap(textSpriteSheetImage, 24, 40, 8, 8), //r
-      createImageBitmap(textSpriteSheetImage, 32, 40, 8, 8), //s
-      createImageBitmap(textSpriteSheetImage, 40, 40, 8, 8), //t
-      createImageBitmap(textSpriteSheetImage, 48, 40, 8, 8), //u
-      createImageBitmap(textSpriteSheetImage, 56, 40, 8, 8), //v
-      createImageBitmap(textSpriteSheetImage, 64, 40, 8, 8), //w
-      createImageBitmap(textSpriteSheetImage, 72, 40, 8, 8), //x
-      createImageBitmap(textSpriteSheetImage, 80, 40, 8, 8), //y
-      createImageBitmap(textSpriteSheetImage, 88, 40, 8, 8), //z
+      createImageBitmap(textSpriteSheetImage, 0, 40, 8, 8), //p
+      createImageBitmap(textSpriteSheetImage, 8, 40, 8, 8), //q
+      createImageBitmap(textSpriteSheetImage, 16, 40, 8, 8), //r
+      createImageBitmap(textSpriteSheetImage, 24, 40, 8, 8), //s
+      createImageBitmap(textSpriteSheetImage, 32, 40, 8, 8), //t
+      createImageBitmap(textSpriteSheetImage, 40, 40, 8, 8), //u
+      createImageBitmap(textSpriteSheetImage, 48, 40, 8, 8), //v
+      createImageBitmap(textSpriteSheetImage, 56, 40, 8, 8), //w
+      createImageBitmap(textSpriteSheetImage, 64, 40, 8, 8), //x
+      createImageBitmap(textSpriteSheetImage, 72, 40, 8, 8), //y
+      createImageBitmap(textSpriteSheetImage, 80, 40, 8, 8), //z
       //0-9
       createImageBitmap(textSpriteSheetImage, 0, 8, 8, 8), //0
       createImageBitmap(textSpriteSheetImage, 8, 8, 8, 8), //1

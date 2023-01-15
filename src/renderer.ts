@@ -3,10 +3,11 @@ import Board from "./logic/Board";
 import { Game } from "./game";
 import { ShipPart } from "./logic/Ship";
 
+const TEXT_BITMAP_PIXEL_SIZE = 8;
+
 type View = {
   start: Point;
   end: Point;
-  scale: number;
 };
 
 const renderer = (
@@ -16,16 +17,16 @@ const renderer = (
   game: Game
 ) => {
   const { model, text } = sprites;
+  const _gameConfig = game.getGameConfig();
   let _fractional = 0;
+  let _scale = 0;
   const _drawerView: View = {
     start: new Point(0, 0),
     end: new Point(0, 0),
-    scale: 0,
   };
   const _mainView: View = {
     start: new Point(0, 0),
     end: new Point(0, 0),
-    scale: 0,
   };
   function render(): void {
     _clearCanvas();
@@ -47,7 +48,13 @@ const renderer = (
     switch (game.getState()) {
       case "player1SettingPieces": {
         _drawDefensiveBoard(game.getBoard(0));
-
+        _drawTileDesignations();
+        _drawText(
+          "ABILITIES:~Airstrike~...5 Turns~Barrage~Radar~Battery",
+          new Point(0, 0),
+          _drawerView,
+          _scale
+        );
         break;
       }
       case "player2SettingPieces": {
@@ -56,8 +63,8 @@ const renderer = (
     }
   }
   function _drawDefensiveBoard(board: Board) {
-    for (let i = 0; i < 15; i++) {
-      for (let j = 0; j < 15; j++) {
+    for (let i = 0; i < _gameConfig.boardConfig.xSize; i++) {
+      for (let j = 0; j < _gameConfig.boardConfig.ySize; j++) {
         if (board.isOccupied(new Point(i, j))) {
           const shipPart = board.getOccupied(new Point(i, j)) as ShipPart;
           const ship = shipPart.parent;
@@ -71,7 +78,7 @@ const renderer = (
                 _mainView.start.x + _fractional + _fractional * i,
                 _mainView.start.y + _fractional + _fractional * j
               ),
-              _mainView.scale,
+              _scale,
               0
             );
           } else {
@@ -81,7 +88,7 @@ const renderer = (
                 _mainView.start.x + _fractional + _fractional * i,
                 _mainView.start.y + _fractional + _fractional * j
               ),
-              _mainView.scale,
+              _scale,
               0
             );
           }
@@ -91,7 +98,7 @@ const renderer = (
               _mainView.start.x + _fractional + _fractional * i,
               _mainView.start.y + _fractional + _fractional * j
             ),
-            _mainView.scale,
+            _scale,
             ship.orientation === "NS" ? 90 : 0
           );
         } else {
@@ -101,7 +108,7 @@ const renderer = (
               _mainView.start.x + _fractional + _fractional * i,
               _mainView.start.y + _fractional + _fractional * j
             ),
-            _mainView.scale,
+            _scale,
             0
           );
         }
@@ -109,21 +116,35 @@ const renderer = (
     }
   }
   function _drawTileDesignations() {
-    //todo
-  }
-  function _drawOffensiveBoard() {
-    for (let i = 0; i < 15; i++) {
-      for (let j = 0; j < 15; j++) {
-        _drawSprite(
-          (i + j) % 2 === 0 ? model.radarTiles[0] : model.radarTiles[1],
-          new Point(
-            _mainView.start.x + _fractional + _fractional * i,
-            _mainView.start.y + _fractional + _fractional * j
-          ),
-          _mainView.scale,
-          0
-        );
-      }
+    //X Designations
+    for (let i = 65; i <= _gameConfig.boardConfig.xSize + 64; i++) {
+      _drawText(
+        String.fromCharCode(i),
+        new Point(
+          _mainView.start.x +
+            (TEXT_BITMAP_PIXEL_SIZE / 2) * _scale +
+            _fractional * (i - 64),
+          _mainView.start.y + (TEXT_BITMAP_PIXEL_SIZE / 2) * _scale
+        ),
+        _mainView,
+        _scale
+      );
+    }
+    //Y Designations
+    for (let i = 1; i <= _gameConfig.boardConfig.ySize; i++) {
+      _drawText(
+        i.toString(),
+        new Point(
+          i / 10 < 1
+            ? _mainView.start.x + (TEXT_BITMAP_PIXEL_SIZE / 2) * _scale
+            : _mainView.start.x,
+          _mainView.start.y +
+            _fractional * i +
+            (TEXT_BITMAP_PIXEL_SIZE / 2) * _scale
+        ),
+        _mainView,
+        _scale
+      );
     }
   }
   function _clearCanvas(): void {
@@ -152,8 +173,37 @@ const renderer = (
       scaledHeight
     );
     ctx.restore();
-    // ctx.rotate((-angle * Math.PI) / 180);
-    // ctx.translate(-drawLoc.x - scaledWidth / 2, -drawLoc.y - scaledHeight / 2);
+  }
+  function _drawText(
+    str: string,
+    drawLoc: Point,
+    limits: View,
+    scale: number
+  ): void {
+    let { x, y } = drawLoc;
+    const lines = str.split("~");
+    lines.forEach((line) => {
+      const wordsArr = line.split(" ");
+      wordsArr.forEach((word) => {
+        if (word.length * TEXT_BITMAP_PIXEL_SIZE * _scale + x > limits.end.x) {
+          x = limits.start.x;
+          y += TEXT_BITMAP_PIXEL_SIZE * scale;
+        }
+        const lettersArr = word.split("");
+        lettersArr.forEach((letter) => {
+          _drawSprite(
+            text[letter as validTextSpriteAccessor],
+            new Point(x, y),
+            scale,
+            0
+          );
+          x += TEXT_BITMAP_PIXEL_SIZE * scale;
+        });
+        x += TEXT_BITMAP_PIXEL_SIZE * scale;
+      });
+      x = limits.start.x;
+      y += TEXT_BITMAP_PIXEL_SIZE * scale;
+    });
   }
   function updateViewSizes(): void {
     if (canvasData.orientation === "landscape") {
@@ -176,8 +226,12 @@ const renderer = (
       _mainView.end.x = canvasData.width;
       _mainView.end.y = canvasData.height;
     }
-    _fractional = (_mainView.end.x - _mainView.start.x) / 16;
-    _mainView.scale = (_mainView.end.x - _mainView.start.x) / 256;
+    _fractional =
+      (_mainView.end.x - _mainView.start.x) /
+      (_gameConfig.boardConfig.xSize + 1);
+    _scale =
+      (_mainView.end.x - _mainView.start.x) /
+      Math.pow(_gameConfig.boardConfig.xSize + 1, 2);
   }
   return {
     render,

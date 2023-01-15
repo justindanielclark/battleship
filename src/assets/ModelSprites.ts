@@ -40,28 +40,20 @@ const modelSprites = (): ModelSpritesLoaded => {
       createImageBitmap(SpriteSheetImage, 48, 32, 16, 16),
       createImageBitmap(SpriteSheetImage, 64, 32, 16, 16),
     ]).then((sprites) => {
-      Sprites.carrier = [];
-      Sprites.carrier.push(
+      Sprites.carrier = [
         sprites[0],
         sprites[1],
         sprites[2],
         sprites[3],
-        sprites[4]
-      );
-      Sprites.battleship = [];
-      Sprites.battleship.push(sprites[5], sprites[6], sprites[7], sprites[8]);
-      Sprites.cruiser = [];
-      Sprites.cruiser.push(sprites[9], sprites[10], sprites[11]);
-      Sprites.submarine = [];
-      Sprites.submarine.push(sprites[12], sprites[13], sprites[14]);
-      Sprites.destroyer = [];
-      Sprites.destroyer.push(sprites[15], sprites[16]);
-      Sprites.waterTiles = [];
-      Sprites.waterTiles.push(sprites[17], sprites[18]);
-      Sprites.radarTiles = [];
-      Sprites.radarTiles.push(sprites[19], sprites[20]);
-      Sprites.damageTiles = [];
-      Sprites.damageTiles.push(sprites[21], sprites[22]);
+        sprites[4],
+      ];
+      Sprites.battleship = [sprites[5], sprites[6], sprites[7], sprites[8]];
+      Sprites.cruiser = [sprites[9], sprites[10], sprites[11]];
+      Sprites.submarine = [sprites[12], sprites[13], sprites[14]];
+      Sprites.destroyer = [sprites[15], sprites[16]];
+      Sprites.waterTiles = [sprites[17], sprites[18]];
+      Sprites.radarTiles = [sprites[19], sprites[20]];
+      Sprites.damageTiles = [sprites[21], sprites[22]];
       Sprites.loaded = true;
     });
   });
