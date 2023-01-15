@@ -8,7 +8,6 @@ import Board from "./logic/Board";
 import Ship from "./logic/Ship";
 import Point from "./logic/Point";
 
-//Tailwind CSS for Body
 const { body } = document;
 body.classList.add(
   "bg-stone-800",
@@ -20,11 +19,10 @@ body.classList.add(
   "p-4"
 );
 
-//Game Setup
 const game = Game();
 const gameConfig = game.getGameConfig();
-
 const canvas = Canvas();
+const canvasEL = canvas.getHTMLCanvasElement();
 body.append(canvas.getHTMLCanvasElement());
 canvas.update();
 const canvasData = canvas.getConfig();
@@ -68,6 +66,14 @@ window.addEventListener("resize", () => {
   canvas.update();
   renderer.updateViewSizes();
   renderer.render();
+});
+canvasEL.addEventListener("click", function (e) {
+  // eslint-disable-next-line no-console
+  console.dir(this);
+  // eslint-disable-next-line no-console
+  console.dir(this.getBoundingClientRect());
+  // eslint-disable-next-line no-console
+  console.dir(e);
 });
 
 function update() {
