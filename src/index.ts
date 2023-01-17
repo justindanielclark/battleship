@@ -21,6 +21,7 @@ body.classList.add(
 
 const game = Game();
 const gameConfig = game.getGameConfig();
+const gameInfo = game.getGameInfo();
 const canvas = Canvas();
 const canvasEL = canvas.getHTMLCanvasElement();
 canvasEL.classList.add("cursor-none");
@@ -110,20 +111,20 @@ canvasEL.addEventListener("click", function (e) {
   console.dir(game.getGameConfig());
 });
 canvasEL.addEventListener("mousemove", function (e) {
-  const { mouseInfo } = game.getGameConfig();
+  const { mouseLoc } = gameInfo.mouse;
   const { left: xOffset, top: yOffset } = this.getBoundingClientRect();
-  mouseInfo.onScreen = true;
-  mouseInfo.xPos = e.clientX;
-  mouseInfo.yPos = e.clientY;
-  mouseInfo.xOffset = xOffset;
-  mouseInfo.yOffset = yOffset;
+  mouseLoc.onScreen = true;
+  mouseLoc.xPos = e.clientX;
+  mouseLoc.yPos = e.clientY;
+  mouseLoc.xOffset = xOffset;
+  mouseLoc.yOffset = yOffset;
 });
 canvasEL.addEventListener("mouseleave", function (e) {
-  const { mouseInfo } = game.getGameConfig();
+  const { mouseLoc } = gameInfo.mouse;
   const { left: xOffset, top: yOffset } = this.getBoundingClientRect();
-  mouseInfo.onScreen = false;
-  mouseInfo.xPos = e.clientX;
-  mouseInfo.yPos = e.clientY;
-  mouseInfo.xOffset = xOffset;
-  mouseInfo.yOffset = yOffset;
+  mouseLoc.onScreen = false;
+  mouseLoc.xPos = e.clientX;
+  mouseLoc.yPos = e.clientY;
+  mouseLoc.xOffset = xOffset;
+  mouseLoc.yOffset = yOffset;
 });

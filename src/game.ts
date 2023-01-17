@@ -8,12 +8,21 @@ type GameConfig = {
   boardConfig: BoardConfig;
   gameState: GameState;
   updateSpeed: number;
-  mouseInfo: {
-    onScreen: boolean;
-    xPos: number;
-    yPos: number;
-    xOffset: number;
-    yOffset: number;
+};
+type GameInfo = {
+  mouse: {
+    mouseLoc: {
+      onScreen: boolean;
+      xPos: number;
+      yPos: number;
+      xOffset: number;
+      yOffset: number;
+    };
+    mouseClick: {
+      bool: boolean;
+      x: number;
+      y: number;
+    };
   };
 };
 type GameState =
@@ -30,6 +39,7 @@ type Game = {
   getBoard(num: number): Board;
   addBoard(board: Board): void;
   getGameConfig(): GameConfig;
+  getGameInfo(): GameInfo;
   getState(): GameState;
   setState(gameState: GameState): void;
 };
@@ -41,18 +51,29 @@ const gameConfig: GameConfig = {
     ySize: 15,
   },
   updateSpeed: 33.33,
-  mouseInfo: {
-    onScreen: false,
-    xPos: 0,
-    xOffset: 0,
-    yPos: 0,
-    yOffset: 0,
+};
+
+const gameInfo: GameInfo = {
+  mouse: {
+    mouseLoc: {
+      onScreen: false,
+      xPos: 0,
+      xOffset: 0,
+      yPos: 0,
+      yOffset: 0,
+    },
+    mouseClick: {
+      bool: false,
+      x: 0,
+      y: 0,
+    },
   },
 };
 
 const game = (): Game => {
   const _boards: Array<Board> = [];
   const _gameConfig: GameConfig = gameConfig;
+  const _gameInfo: GameInfo = gameInfo;
   function addBoard(board: Board) {
     _boards.push(board);
   }
@@ -66,6 +87,9 @@ const game = (): Game => {
   function getGameConfig(): GameConfig {
     return _gameConfig;
   }
+  function getGameInfo(): GameInfo {
+    return _gameInfo;
+  }
   function getState(): GameState {
     return gameConfig.gameState;
   }
@@ -76,10 +100,11 @@ const game = (): Game => {
     addBoard,
     getBoard,
     getGameConfig,
+    getGameInfo,
     getState,
     setState,
   };
 };
 
-export { Game, GameConfig, GameState, game };
+export { Game, GameConfig, GameInfo, GameState, game };
 export default game;

@@ -18,6 +18,8 @@ const renderer = (
 ) => {
   const { model, text } = sprites;
   const _gameConfig = game.getGameConfig();
+  const _gameInfo = game.getGameInfo();
+  const { mouseLoc: _mouseLoc } = _gameInfo.mouse;
   let _fractional = 0;
   let _scale = 0;
   const _drawerView: View = {
@@ -29,7 +31,7 @@ const renderer = (
     end: new Point(0, 0),
   };
   function render(): void {
-    const { gameState, mouseInfo } = _gameConfig;
+    const gameState = _gameConfig.gameState;
     _clearCanvas();
     ctx.imageSmoothingEnabled = false;
     // ctx.fillStyle = "rgb(45,45,45)";
@@ -64,10 +66,10 @@ const renderer = (
         break;
       }
     }
-    if (gameState !== "initializing" && mouseInfo.onScreen) {
+    if (gameState !== "initializing" && _mouseLoc.onScreen) {
       _drawReticule(
-        mouseInfo.xPos - mouseInfo.xOffset,
-        mouseInfo.yPos - mouseInfo.yOffset
+        _mouseLoc.xPos - _mouseLoc.xOffset,
+        _mouseLoc.yPos - _mouseLoc.yOffset
       );
     }
   }
