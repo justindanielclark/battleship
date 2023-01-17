@@ -29,24 +29,25 @@ const renderer = (
     end: new Point(0, 0),
   };
   function render(): void {
+    const { gameState, mouseInfo } = _gameConfig;
     _clearCanvas();
     ctx.imageSmoothingEnabled = false;
-    ctx.fillStyle = "rgb(45,45,45)";
-    ctx.fillRect(
-      _drawerView.start.x,
-      _drawerView.start.y,
-      _drawerView.end.x,
-      _drawerView.end.y
-    );
-    ctx.fillStyle = "rgb(35,35,35)";
-    ctx.fillRect(
-      _mainView.start.x,
-      _mainView.start.y,
-      _mainView.end.x,
-      _mainView.end.y
-    );
-    switch (game.getState()) {
-      case "player1SettingPieces": {
+    // ctx.fillStyle = "rgb(45,45,45)";
+    // ctx.fillRect(
+    //   _drawerView.start.x,
+    //   _drawerView.start.y,
+    //   _drawerView.end.x,
+    //   _drawerView.end.y
+    // );
+    // ctx.fillStyle = "rgb(35,35,35)";
+    // ctx.fillRect(
+    //   _mainView.start.x,
+    //   _mainView.start.y,
+    //   _mainView.end.x,
+    //   _mainView.end.y
+    // );
+    switch (gameState) {
+      case "player1turnstart": {
         _drawDefensiveBoard(game.getBoard(0));
         _drawTileDesignations();
         _drawText(
@@ -57,9 +58,19 @@ const renderer = (
         );
         break;
       }
-      case "player2SettingPieces": {
+      case "player1attack": {
+        _drawOffensiveBoard(game.getBoard(1));
+        _drawTileDesignations();
         break;
       }
+    }
+    if (gameState !== "initializing" && mouseInfo.onScreen) {
+      _drawSprite(
+        model.reticule,
+        new Point(mouseInfo.xPos, mouseInfo.yPos),
+        _scale,
+        0
+      );
     }
   }
   function _drawDefensiveBoard(board: Board) {
@@ -114,6 +125,68 @@ const renderer = (
         }
       }
     }
+  }
+  function _drawOffensiveBoard(board: Board) {
+    for (let i = 0; i < _gameConfig.boardConfig.xSize; i++) {
+      for (let j = 0; j < _gameConfig.boardConfig.ySize; j++) {
+        const point = new Point(i, j);
+        if (board.getTargeted(point)) {
+          const shipPart = board.getOccupied(point) as ShipPart;
+          if (board.isOccupied(point)) {
+            const ship = shipPart.parent;
+            const isAfloat = ship.isAfloat();
+            const parentType = shipPart.parent.shipType;
+            const partNum = shipPart.partNum;
+            const damaged = shipPart.damaged;
+            if (damaged) {
+              _drawSprite(
+                (i + j) % 2 === 0 ? model.damageTiles[0] : model.damageTiles[1],
+                new Point(
+                  _mainView.start.x + _fractional + _fractional * i,
+                  _mainView.start.y + _fractional + _fractional * j
+                ),
+                _scale,
+                0
+              );
+              if (!isAfloat) {
+                _drawSprite(
+                  model[parentType][partNum],
+                  new Point(
+                    _mainView.start.x + _fractional + _fractional * i,
+                    _mainView.start.y + _fractional + _fractional * j
+                  ),
+                  _scale,
+                  ship.orientation === "NS" ? 90 : 0
+                );
+              }
+            }
+          } else {
+            _drawSprite(
+              (i + j) % 2 === 0 ? model.waterTiles[0] : model.waterTiles[1],
+              new Point(
+                _mainView.start.x + _fractional + _fractional * i,
+                _mainView.start.y + _fractional + _fractional * j
+              ),
+              _scale,
+              0
+            );
+          }
+        } else {
+          _drawSprite(
+            (i + j) % 2 === 0 ? model.radarTiles[0] : model.radarTiles[1],
+            new Point(
+              _mainView.start.x + _fractional + _fractional * i,
+              _mainView.start.y + _fractional + _fractional * j
+            ),
+            _scale,
+            0
+          );
+        }
+      }
+    }
+  }
+  function _drawReticule(mouseX: number, mouseY: number) {
+    _drawSprite(model.reticule, new Point(mouseX, mouseY), _scale, 0);
   }
   function _drawTileDesignations() {
     //X Designations
