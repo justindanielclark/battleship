@@ -1,12 +1,12 @@
 import "./styles/styles.css"; //required to load TailindCSS
 import ModelSprites from "./assets/ModelSprites";
 import TextSprites from "./assets/TextSprites";
-import Canvas from "./canvas";
-import Game from "./game";
-import Renderer from "./renderer";
-import Board from "./logic/Board";
-import Ship from "./logic/Ship";
-import Point from "./logic/Point";
+import Canvas from "./logic/canvas";
+import Game from "./logic/game";
+import Renderer from "./logic/renderer";
+import Board from "./logic/data_storage/Board";
+import Ship from "./logic/data_storage/Ship";
+import Point from "./logic/data_storage/Point";
 
 const { body } = document;
 body.classList.add(
@@ -20,21 +20,18 @@ body.classList.add(
 );
 
 const game = Game();
-const gameConfig = game.getGameConfig();
-const gameInfo = game.getGameInfo();
 const canvas = Canvas();
 const canvasEL = canvas.getHTMLCanvasElement();
 canvasEL.classList.add("cursor-none");
 body.append(canvas.getHTMLCanvasElement());
 canvas.update();
-const canvasData = canvas.getConfig();
+game.updateViewSizes(canvas.getCanvasData());
 const ctx = canvas.get2dRenderingContext();
 const sprites = {
   model: ModelSprites(),
   text: TextSprites(),
 };
-const renderer = Renderer(canvasData, ctx, sprites, game);
-renderer.updateViewSizes();
+const renderer = Renderer(ctx);
 
 const player1Board = new Board(
   game.getGameConfig().boardConfig.xSize,
@@ -70,10 +67,10 @@ function update(timestamp: number) {
   const elapsed = timestamp - prevUpdate;
   if (elapsed > 33.33) {
     prevUpdate = timestamp;
-    switch (gameConfig.gameState) {
+    switch (game.getState()) {
       case "initializing": {
         if (sprites.model.loaded && sprites.text.loaded) {
-          gameConfig.gameState = "player1turnstart";
+          game.setState("player1turnstart");
         }
         break;
       }
@@ -97,7 +94,7 @@ function update(timestamp: number) {
 
 window.addEventListener("resize", () => {
   canvas.update();
-  renderer.updateViewSizes();
+  game.updateViewSizes(canvas.getCanvasData());
   renderer.render();
 });
 canvasEL.addEventListener("click", function (e) {
@@ -111,7 +108,7 @@ canvasEL.addEventListener("click", function (e) {
   console.dir(game.getGameConfig());
 });
 canvasEL.addEventListener("mousemove", function (e) {
-  const { mouseLoc } = gameInfo.mouse;
+  const { mouseLoc } = game.getGameInfo().mouse;
   const { left: xOffset, top: yOffset } = this.getBoundingClientRect();
   mouseLoc.onScreen = true;
   mouseLoc.xPos = e.clientX;
@@ -120,7 +117,7 @@ canvasEL.addEventListener("mousemove", function (e) {
   mouseLoc.yOffset = yOffset;
 });
 canvasEL.addEventListener("mouseleave", function (e) {
-  const { mouseLoc } = gameInfo.mouse;
+  const { mouseLoc } = game.getGameInfo().mouse;
   const { left: xOffset, top: yOffset } = this.getBoundingClientRect();
   mouseLoc.onScreen = false;
   mouseLoc.xPos = e.clientX;

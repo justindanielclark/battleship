@@ -1,11 +1,11 @@
 const canvas = () => {
   const _self = document.createElement("canvas");
-  const _data: CanvasConfig = {
+  const _data: CanvasData = {
     orientation: "portrait",
     width: 0,
     height: 0,
   };
-  function getConfig(): CanvasConfig {
+  function getCanvasData(): CanvasData {
     return _data;
   }
   function getHTMLCanvasElement(): HTMLCanvasElement {
@@ -21,7 +21,7 @@ const canvas = () => {
     }
     return renderingContext;
   }
-  function _updateCanvasConfig(): void {
+  function _updateCanvasData(): void {
     let greater;
     let lesser;
     if (window.innerHeight > window.innerWidth) {
@@ -55,13 +55,13 @@ const canvas = () => {
     _self.width = _data.width;
   }
   function update(): void {
-    _updateCanvasConfig();
+    _updateCanvasData();
     _updateSize();
   }
   return {
     get2dRenderingContext,
     getHTMLCanvasElement,
-    getConfig,
+    getCanvasData,
     update,
   };
 };

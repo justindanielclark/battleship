@@ -1,6 +1,6 @@
 declare module "*.png";
 
-type CanvasConfig = {
+type CanvasData = {
   orientation: "portrait" | "landscape";
   width: number;
   height: number;

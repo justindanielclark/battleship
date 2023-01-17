@@ -1,4 +1,4 @@
-import Ship from "../Ship";
+import Ship from "../data_storage/Ship";
 
 const battleship = new Ship("battleship", "NS");
 const carrier = new Ship("carrier", "NS");
