@@ -39,6 +39,8 @@ const modelSprites = (): ModelSpritesLoaded => {
       //Damage Tiles
       createImageBitmap(SpriteSheetImage, 48, 32, 16, 16),
       createImageBitmap(SpriteSheetImage, 64, 32, 16, 16),
+      //Reticule
+      createImageBitmap(SpriteSheetImage, 64, 16, 16, 16),
     ]).then((sprites) => {
       Sprites.carrier = [
         sprites[0],
@@ -54,6 +56,7 @@ const modelSprites = (): ModelSpritesLoaded => {
       Sprites.waterTiles = [sprites[17], sprites[18]];
       Sprites.radarTiles = [sprites[19], sprites[20]];
       Sprites.damageTiles = [sprites[21], sprites[22]];
+      Sprites.reticule = sprites[23];
       Sprites.loaded = true;
     });
   });
