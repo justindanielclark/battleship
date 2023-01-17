@@ -8,12 +8,19 @@ type GameConfig = {
   boardConfig: BoardConfig;
   gameState: GameState;
   updateSpeed: number;
+  mouseInfo: {
+    onScreen: boolean;
+    xPos: number;
+    yPos: number;
+  };
 };
 type GameState =
   | "initializing"
   | "player1SettingPieces"
-  | "player2SettingPieces"
+  | "player1turnstart"
   | "player1attack"
+  | "player2SettingPieces"
+  | "player2turnstart"
   | "player2attack"
   | "end";
 
@@ -32,6 +39,11 @@ const gameConfig: GameConfig = {
     ySize: 15,
   },
   updateSpeed: 33.33,
+  mouseInfo: {
+    onScreen: false,
+    xPos: 0,
+    yPos: 0,
+  },
 };
 
 const game = (): Game => {
