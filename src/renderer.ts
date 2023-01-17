@@ -65,11 +65,9 @@ const renderer = (
       }
     }
     if (gameState !== "initializing" && mouseInfo.onScreen) {
-      _drawSprite(
-        model.reticule,
-        new Point(mouseInfo.xPos, mouseInfo.yPos),
-        _scale,
-        0
+      _drawReticule(
+        mouseInfo.xPos - mouseInfo.xOffset,
+        mouseInfo.yPos - mouseInfo.yOffset
       );
     }
   }
@@ -186,7 +184,15 @@ const renderer = (
     }
   }
   function _drawReticule(mouseX: number, mouseY: number) {
-    _drawSprite(model.reticule, new Point(mouseX, mouseY), _scale, 0);
+    _drawSprite(
+      model.reticule,
+      new Point(
+        mouseX - (model.reticule.width * _scale) / 2,
+        mouseY - (model.reticule.height * _scale) / 2
+      ),
+      _scale,
+      0
+    );
   }
   function _drawTileDesignations() {
     //X Designations

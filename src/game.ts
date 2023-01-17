@@ -12,6 +12,8 @@ type GameConfig = {
     onScreen: boolean;
     xPos: number;
     yPos: number;
+    xOffset: number;
+    yOffset: number;
   };
 };
 type GameState =
@@ -42,7 +44,9 @@ const gameConfig: GameConfig = {
   mouseInfo: {
     onScreen: false,
     xPos: 0,
+    xOffset: 0,
     yPos: 0,
+    yOffset: 0,
   },
 };
 

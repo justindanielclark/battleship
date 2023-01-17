@@ -23,6 +23,7 @@ const game = Game();
 const gameConfig = game.getGameConfig();
 const canvas = Canvas();
 const canvasEL = canvas.getHTMLCanvasElement();
+canvasEL.classList.add("cursor-none");
 body.append(canvas.getHTMLCanvasElement());
 canvas.update();
 const canvasData = canvas.getConfig();
@@ -110,13 +111,19 @@ canvasEL.addEventListener("click", function (e) {
 });
 canvasEL.addEventListener("mousemove", function (e) {
   const { mouseInfo } = game.getGameConfig();
+  const { left: xOffset, top: yOffset } = this.getBoundingClientRect();
   mouseInfo.onScreen = true;
   mouseInfo.xPos = e.clientX;
   mouseInfo.yPos = e.clientY;
+  mouseInfo.xOffset = xOffset;
+  mouseInfo.yOffset = yOffset;
 });
 canvasEL.addEventListener("mouseleave", function (e) {
   const { mouseInfo } = game.getGameConfig();
+  const { left: xOffset, top: yOffset } = this.getBoundingClientRect();
   mouseInfo.onScreen = false;
   mouseInfo.xPos = e.clientX;
   mouseInfo.yPos = e.clientY;
+  mouseInfo.xOffset = xOffset;
+  mouseInfo.yOffset = yOffset;
 });
