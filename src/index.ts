@@ -52,15 +52,46 @@ const player2Board = new Board(
   game.getGameConfig().boardConfig.ySize
 );
 game.addBoard(player2Board);
-player2Board.addShip(new Point(9, 14), new Ship("carrier", "NS"));
+player2Board.addShip(new Point(9, 4), new Ship("carrier", "NS"));
 player2Board.addShip(new Point(3, 3), new Ship("battleship", "EW"));
-player2Board.addShip(new Point(6, 8), new Ship("cruiser", "NS"));
+player2Board.addShip(new Point(1, 8), new Ship("cruiser", "NS"));
 player2Board.addShip(new Point(1, 1), new Ship("submarine", "EW"));
+player2Board.target(new Point(1, 1));
+player2Board.target(new Point(2, 1));
+player2Board.target(new Point(3, 1));
+player2Board.target(new Point(4, 1));
 player2Board.addShip(new Point(10, 2), new Ship("destroyer", "NS"));
 
-setInterval(() => {
-  update();
-}, gameConfig.updateSpeed);
+let prevUpdate = 0;
+window.requestAnimationFrame(update);
+function update(timestamp: number) {
+  const elapsed = timestamp - prevUpdate;
+  if (elapsed > 33.33) {
+    prevUpdate = timestamp;
+    switch (gameConfig.gameState) {
+      case "initializing": {
+        if (sprites.model.loaded && sprites.text.loaded) {
+          gameConfig.gameState = "player1turnstart";
+        }
+        break;
+      }
+      case "player1SettingPieces": {
+        break;
+      }
+      case "player1attack": {
+        break;
+      }
+      case "player2SettingPieces": {
+        break;
+      }
+      case "player2attack": {
+        break;
+      }
+    }
+    renderer.render();
+  }
+  window.requestAnimationFrame(update);
+}
 
 window.addEventListener("resize", () => {
   canvas.update();
@@ -74,28 +105,18 @@ canvasEL.addEventListener("click", function (e) {
   console.dir(this.getBoundingClientRect());
   // eslint-disable-next-line no-console
   console.dir(e);
+  // eslint-disable-next-line no-console
+  console.dir(game.getGameConfig());
 });
-
-function update() {
-  switch (gameConfig.gameState) {
-    case "initializing": {
-      if (sprites.model.loaded && sprites.text.loaded) {
-        gameConfig.gameState = "player1SettingPieces";
-      }
-      break;
-    }
-    case "player1SettingPieces": {
-      break;
-    }
-    case "player1attack": {
-      break;
-    }
-    case "player2SettingPieces": {
-      break;
-    }
-    case "player2attack": {
-      break;
-    }
-  }
-  renderer.render();
-}
+canvasEL.addEventListener("mousemove", function (e) {
+  const { mouseInfo } = game.getGameConfig();
+  mouseInfo.onScreen = true;
+  mouseInfo.xPos = e.clientX;
+  mouseInfo.yPos = e.clientY;
+});
+canvasEL.addEventListener("mouseleave", function (e) {
+  const { mouseInfo } = game.getGameConfig();
+  mouseInfo.onScreen = false;
+  mouseInfo.xPos = e.clientX;
+  mouseInfo.yPos = e.clientY;
+});
