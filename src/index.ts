@@ -1,6 +1,4 @@
 import "./styles/styles.css"; //required to load TailindCSS
-import ModelSprites from "./assets/ModelSprites";
-import TextSprites from "./assets/TextSprites";
 import Canvas from "./logic/canvas";
 import Game from "./logic/game";
 import Renderer from "./logic/renderer";
@@ -22,16 +20,13 @@ body.classList.add(
 const game = Game();
 const canvas = Canvas();
 const canvasEL = canvas.getHTMLCanvasElement();
-canvasEL.classList.add("cursor-none");
+//todo canvasEL.classList.add("cursor-none");
 body.append(canvas.getHTMLCanvasElement());
 canvas.update();
 game.updateViewSizes(canvas.getCanvasData());
 const ctx = canvas.get2dRenderingContext();
-const sprites = {
-  model: ModelSprites(),
-  text: TextSprites(),
-};
-const renderer = Renderer(ctx);
+
+const renderer = Renderer(ctx, game);
 
 const player1Board = new Board(
   game.getGameConfig().boardConfig.xSize,
@@ -65,29 +60,19 @@ let prevUpdate = 0;
 window.requestAnimationFrame(update);
 function update(timestamp: number) {
   const elapsed = timestamp - prevUpdate;
-  if (elapsed > 33.33) {
+  if (elapsed > game.getGameConfig().updateSpeed) {
     prevUpdate = timestamp;
     switch (game.getState()) {
       case "initializing": {
-        if (sprites.model.loaded && sprites.text.loaded) {
-          game.setState("player1turnstart");
+        if (game.isInitialized()) {
+          game.setState("turnReview");
+          game.setState("attack");
         }
         break;
       }
-      case "player1SettingPieces": {
-        break;
-      }
-      case "player1attack": {
-        break;
-      }
-      case "player2SettingPieces": {
-        break;
-      }
-      case "player2attack": {
-        break;
-      }
     }
-    renderer.render();
+    const scene = game.getScene();
+    renderer.render(scene);
   }
   window.requestAnimationFrame(update);
 }
@@ -95,17 +80,10 @@ function update(timestamp: number) {
 window.addEventListener("resize", () => {
   canvas.update();
   game.updateViewSizes(canvas.getCanvasData());
-  renderer.render();
+  renderer.reRender();
 });
 canvasEL.addEventListener("click", function (e) {
-  // eslint-disable-next-line no-console
-  console.dir(this);
-  // eslint-disable-next-line no-console
-  console.dir(this.getBoundingClientRect());
-  // eslint-disable-next-line no-console
-  console.dir(e);
-  // eslint-disable-next-line no-console
-  console.dir(game.getGameConfig());
+  game.registerClick(this.getBoundingClientRect(), new Point(e.x, e.y));
 });
 canvasEL.addEventListener("mousemove", function (e) {
   const { mouseLoc } = game.getGameInfo().mouse;
