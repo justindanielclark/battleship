@@ -20,7 +20,7 @@ body.classList.add(
 const game = Game();
 const canvas = Canvas();
 const canvasEL = canvas.getHTMLCanvasElement();
-//todo canvasEL.classList.add("cursor-none");
+canvasEL.classList.add("cursor-none");
 body.append(canvas.getHTMLCanvasElement());
 canvas.update();
 game.updateViewSizes(canvas.getCanvasData());
@@ -52,8 +52,8 @@ player2Board.addShip(new Point(1, 8), new Ship("cruiser", "NS"));
 player2Board.addShip(new Point(1, 1), new Ship("submarine", "EW"));
 player2Board.target(new Point(1, 1));
 player2Board.target(new Point(2, 1));
-player2Board.target(new Point(3, 1));
-player2Board.target(new Point(4, 1));
+// player2Board.target(new Point(3, 1));
+// player2Board.target(new Point(4, 1));
 player2Board.addShip(new Point(10, 2), new Ship("destroyer", "NS"));
 
 let prevUpdate = 0;
@@ -83,23 +83,11 @@ window.addEventListener("resize", () => {
   renderer.reRender();
 });
 canvasEL.addEventListener("click", function (e) {
-  game.registerClick(this.getBoundingClientRect(), new Point(e.x, e.y));
+  game.handleClick(this.getBoundingClientRect(), new Point(e.x, e.y));
 });
 canvasEL.addEventListener("mousemove", function (e) {
-  const { mouseLoc } = game.getGameInfo().mouse;
-  const { left: xOffset, top: yOffset } = this.getBoundingClientRect();
-  mouseLoc.onScreen = true;
-  mouseLoc.xPos = e.clientX;
-  mouseLoc.yPos = e.clientY;
-  mouseLoc.xOffset = xOffset;
-  mouseLoc.yOffset = yOffset;
+  game.handleMouseMove(this.getBoundingClientRect(), new Point(e.x, e.y));
 });
 canvasEL.addEventListener("mouseleave", function (e) {
-  const { mouseLoc } = game.getGameInfo().mouse;
-  const { left: xOffset, top: yOffset } = this.getBoundingClientRect();
-  mouseLoc.onScreen = false;
-  mouseLoc.xPos = e.clientX;
-  mouseLoc.yPos = e.clientY;
-  mouseLoc.xOffset = xOffset;
-  mouseLoc.yOffset = yOffset;
+  game.handleMouseLeave(this.getBoundingClientRect(), new Point(e.x, e.y));
 });

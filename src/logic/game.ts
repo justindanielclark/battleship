@@ -37,17 +37,11 @@ type CanvasConfig = {
   scale: number;
 };
 type MouseConfig = {
-  mouseLoc: {
-    onScreen: boolean;
-    xPos: number;
-    yPos: number;
-    xOffset: number;
-    yOffset: number;
-  };
-  mouseClick: {
+  isOnScreen: boolean;
+  currentLoc: Point;
+  clicked: {
     bool: boolean;
-    x: number;
-    y: number;
+    loc: Point;
   };
 };
 type GameConfig = {
@@ -69,7 +63,9 @@ type Game = {
   isInitialized(): boolean;
   setState(gameState: GameState): void;
   updateViewSizes(canvasData: CanvasData): void;
-  registerClick(canvasData: DOMRect, mouseClickLocation: Point): void;
+  handleClick(canvasData: DOMRect, mouseClickLocation: Point): void;
+  handleMouseMove(canvasData: DOMRect, mouseMoveLocation: Point): void;
+  handleMouseLeave(canvasData: DOMRect, mouseMoveLocation: Point): void;
 };
 
 const zIndexes = {
@@ -77,6 +73,7 @@ const zIndexes = {
   tiles: 1,
   text: 2,
   ships: 3,
+  reticule: 4,
 };
 
 const game = (): Game => {
@@ -88,22 +85,16 @@ const game = (): Game => {
     },
     updateSpeed: 33.33,
   };
-  //Values set in first updateViewSizes call
+  //View Values Set In First UpdateViewSizesCall
   const _gameInfo: GameInfo = {
     state: "initializing",
     playerTurn: 0,
     mouse: {
-      mouseLoc: {
-        onScreen: false,
-        xPos: 0,
-        xOffset: 0,
-        yPos: 0,
-        yOffset: 0,
-      },
-      mouseClick: {
+      isOnScreen: false,
+      currentLoc: new Point(0, 0),
+      clicked: {
         bool: false,
-        x: 0,
-        y: 0,
+        loc: new Point(0, 0),
       },
     },
     canvas: {
@@ -182,8 +173,6 @@ const game = (): Game => {
           main.end.x - (boardPosition.start.x - main.start.x);
         boardPosition.end.y =
           main.end.y - (boardPosition.start.y - main.start.y);
-        main.boardPosition.start.y +
-          Math.pow(_gameConfig.boardConfig.ySize + 1, 2);
       } else if (_gameInfo.canvas.orientation === "portrait") {
         trueSize.width = 360;
         trueSize.height = 480;
@@ -195,6 +184,22 @@ const game = (): Game => {
         main.start.y = trueSize.height / 4;
         main.end.x = trueSize.width;
         main.end.y = trueSize.height;
+        boardPosition.start.x =
+          (main.end.x -
+            main.start.x -
+            (_gameConfig.boardConfig.xSize + 1) * 16) /
+            2 +
+          main.start.x;
+        boardPosition.start.y =
+          (main.end.y -
+            main.start.y -
+            (_gameConfig.boardConfig.ySize + 1) * 16) /
+            2 +
+          main.start.y;
+        boardPosition.end.x =
+          main.end.x - (boardPosition.start.x - main.start.x);
+        boardPosition.end.y =
+          main.end.y - (boardPosition.start.y - main.start.y);
       }
     }
     _gameInfo.canvas.scale = canvasData.width / trueSize.width;
@@ -219,7 +224,20 @@ const game = (): Game => {
         //
       }
     }
+    //Render Reticule
+    if (_gameInfo.mouse.isOnScreen) {
+      newScene.addImgToScene(
+        zIndexes.reticule,
+        sprites.model.reticule,
+        new Point(
+          _gameInfo.mouse.currentLoc.x - 8,
+          _gameInfo.mouse.currentLoc.y - 8
+        ),
+        0
+      );
+    }
     return newScene.getDrawArray();
+
     function addTileDesignationsToScene(scene: SceneBuilder): void {
       for (let i = 0; i < _gameConfig.boardConfig.xSize; i++) {
         scene.addImgToScene(
@@ -355,25 +373,61 @@ const game = (): Game => {
         }
       }
     }
+    function addText(scene: SceneBuilder, text: string): void {
+      //
+    }
   }
   function isInitialized(): boolean {
     return sprites.model.loaded && sprites.text.loaded;
   }
-  function registerClick(canvasData: DOMRect, mouseClickLocation: Point): void {
+  function handleClick(canvasData: DOMRect, mouseClickLocation: Point): void {
     const scale = _gameInfo.canvas.scale;
     const trueX = (mouseClickLocation.x - canvasData.left) / scale;
     const trueY = (mouseClickLocation.y - canvasData.top) / scale;
-    const { main } = _gameInfo.canvas.views;
     const { boardPosition } = _gameInfo.canvas.views.main;
-    // eslint-disable-next-line no-console
-    console.log("\n");
-    // eslint-disable-next-line no-console
-    console.log(
-      trueX < boardPosition.end.x &&
-        trueX > boardPosition.start.x + 16 &&
-        trueY < boardPosition.end.y &&
-        trueY > boardPosition.start.y + 16
-    );
+    if (_gameInfo.state === "attack") {
+      if (isWithinBoardTiles(new Point(trueX, trueY))) {
+        const clickLoc = getTileClicked(new Point(trueX, trueY));
+        console.log(clickLoc);
+      }
+    }
+
+    function isWithinBoardTiles(loc: Point): boolean {
+      return (
+        loc.x >= boardPosition.start.x + 16 &&
+        loc.x <= boardPosition.end.x &&
+        loc.y >= boardPosition.start.y + 16 &&
+        loc.y <= boardPosition.end.y
+      );
+    }
+    function getTileClicked(loc: Point): Point {
+      return new Point(
+        Math.floor((loc.x - boardPosition.start.x - 16) / 16),
+        Math.floor((loc.y - boardPosition.start.y - 16) / 16)
+      );
+    }
+  }
+  function handleMouseMove(
+    canvasData: DOMRect,
+    mouseMoveLocation: Point
+  ): void {
+    const scale = _gameInfo.canvas.scale;
+    const trueX = (mouseMoveLocation.x - canvasData.left) / scale;
+    const trueY = (mouseMoveLocation.y - canvasData.top) / scale;
+    _gameInfo.mouse.isOnScreen = true;
+    _gameInfo.mouse.currentLoc.x = trueX;
+    _gameInfo.mouse.currentLoc.y = trueY;
+  }
+  function handleMouseLeave(
+    canvasData: DOMRect,
+    mouseMoveLocation: Point
+  ): void {
+    const scale = _gameInfo.canvas.scale;
+    const trueX = (mouseMoveLocation.x - canvasData.left) / scale;
+    const trueY = (mouseMoveLocation.y - canvasData.top) / scale;
+    _gameInfo.mouse.isOnScreen = false;
+    _gameInfo.mouse.currentLoc.x = trueX;
+    _gameInfo.mouse.currentLoc.y = trueY;
   }
   return {
     addBoard,
@@ -384,7 +438,9 @@ const game = (): Game => {
     updateViewSizes,
     isInitialized,
     getScene,
-    registerClick,
+    handleClick,
+    handleMouseMove,
+    handleMouseLeave,
   };
 };
 

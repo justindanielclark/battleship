@@ -35,15 +35,6 @@ const renderer = (ctx: CanvasRenderingContext2D, game: Game) => {
         );
       });
     });
-
-    ctx.fillStyle = "rgba(95, 35, 35, .5)";
-    ctx.fillRect(
-      main.boardPosition.start.x * scale,
-      main.boardPosition.start.y * scale,
-      //!
-      (main.boardPosition.end.x - main.boardPosition.start.x) * scale,
-      (main.boardPosition.end.y - main.boardPosition.start.y) * scale
-    );
   }
   function reRender(): void {
     if (_lastScene) {
