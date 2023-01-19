@@ -41,6 +41,26 @@ const modelSprites = (): ModelSpritesLoaded => {
       createImageBitmap(SpriteSheetImage, 64, 32, 16, 16),
       //Reticule
       createImageBitmap(SpriteSheetImage, 64, 16, 16, 16),
+      //Highlight Tiles
+      createImageBitmap(SpriteSheetImage, 48, 80, 16, 16),
+      createImageBitmap(SpriteSheetImage, 64, 80, 16, 16),
+      //Button Tiles
+      //Green
+      createImageBitmap(SpriteSheetImage, 0, 80, 1, 16),
+      createImageBitmap(SpriteSheetImage, 1, 80, 1, 16),
+      createImageBitmap(SpriteSheetImage, 2, 80, 1, 16),
+      createImageBitmap(SpriteSheetImage, 3, 80, 1, 16),
+      createImageBitmap(SpriteSheetImage, 4, 80, 1, 16),
+      createImageBitmap(SpriteSheetImage, 5, 80, 1, 16),
+      createImageBitmap(SpriteSheetImage, 6, 80, 1, 16),
+      //Red
+      createImageBitmap(SpriteSheetImage, 9, 80, 1, 16),
+      createImageBitmap(SpriteSheetImage, 10, 80, 1, 16),
+      createImageBitmap(SpriteSheetImage, 11, 80, 1, 16),
+      createImageBitmap(SpriteSheetImage, 12, 80, 1, 16),
+      createImageBitmap(SpriteSheetImage, 13, 80, 1, 16),
+      createImageBitmap(SpriteSheetImage, 14, 80, 1, 16),
+      createImageBitmap(SpriteSheetImage, 15, 80, 1, 16),
     ]).then((sprites) => {
       Sprites.carrier = [
         sprites[0],
@@ -57,6 +77,27 @@ const modelSprites = (): ModelSpritesLoaded => {
       Sprites.radarTiles = [sprites[19], sprites[20]];
       Sprites.damageTiles = [sprites[21], sprites[22]];
       Sprites.reticule = sprites[23];
+      Sprites.highlightTiles = [sprites[24], sprites[25]];
+      Sprites.buttonTiles = {
+        green: [
+          sprites[26],
+          sprites[27],
+          sprites[28],
+          sprites[29],
+          sprites[30],
+          sprites[31],
+          sprites[32],
+        ],
+        red: [
+          sprites[33],
+          sprites[34],
+          sprites[35],
+          sprites[36],
+          sprites[37],
+          sprites[38],
+          sprites[39],
+        ],
+      };
       Sprites.loaded = true;
     });
   });

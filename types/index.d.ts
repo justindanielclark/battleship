@@ -16,6 +16,11 @@ type ModelSprites = {
   waterTiles?: Array<ImageBitmap>;
   radarTiles?: Array<ImageBitmap>;
   damageTiles?: Array<ImageBitmap>;
+  highlightTiles?: Array<ImageBitmap>;
+  buttonTiles?: {
+    green: Array<ImageBitmap>;
+    red: Array<ImageBitmap>;
+  };
 };
 type ModelSpritesLoaded = {
   loaded: boolean;
@@ -28,6 +33,11 @@ type ModelSpritesLoaded = {
   waterTiles: Array<ImageBitmap>;
   radarTiles: Array<ImageBitmap>;
   damageTiles: Array<ImageBitmap>;
+  highlightTiles: Array<ImageBitmap>;
+  buttonTiles: {
+    green: Array<ImageBitmap>;
+    red: Array<ImageBitmap>;
+  };
 };
 type TextSprites = {
   loaded: boolean;
