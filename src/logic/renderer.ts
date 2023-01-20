@@ -1,6 +1,6 @@
 import Point from "./data_storage/Point";
 import { Game } from "./game";
-import { Scene } from "./scene";
+import { Scene } from "./sceneBuilder";
 const renderer = (ctx: CanvasRenderingContext2D, game: Game) => {
   const _gameInfo = game.getGameInfo();
   let _lastScene: Scene;
@@ -10,14 +10,33 @@ const renderer = (ctx: CanvasRenderingContext2D, game: Game) => {
     _lastScene = scene;
     _clearCanvas();
     ctx.imageSmoothingEnabled = false;
-    ctx.fillStyle = "rgb(35,45,35)";
+
+    //SECTION1
+    ctx.fillStyle = "rgba(45,25,25,1)";
     ctx.fillRect(
-      drawer.start.x * scale,
-      drawer.start.y * scale,
-      (drawer.end.x - drawer.start.x) * scale,
-      (drawer.end.y - drawer.start.y) * scale
+      drawer.sections[0].start.x * scale,
+      drawer.sections[0].start.y * scale,
+      (drawer.sections[0].end.x - drawer.sections[0].start.x) * scale,
+      (drawer.sections[0].end.y - drawer.sections[0].start.y) * scale
     );
-    ctx.fillStyle = "rgb(25,25,25)";
+    //SECTION2
+    ctx.fillStyle = "rgba(25,45,25,1)";
+    ctx.fillRect(
+      drawer.sections[1].start.x * scale,
+      drawer.sections[1].start.y * scale,
+      (drawer.sections[1].end.x - drawer.sections[1].start.x) * scale,
+      (drawer.sections[1].end.y - drawer.sections[1].start.y) * scale
+    );
+    //SECTION3
+    ctx.fillStyle = "rgba(25,25,45,1)";
+    ctx.fillRect(
+      drawer.sections[2].start.x * scale,
+      drawer.sections[2].start.y * scale,
+      (drawer.sections[2].end.x - drawer.sections[2].start.x) * scale,
+      (drawer.sections[2].end.y - drawer.sections[2].start.y) * scale
+    );
+    //MAIN SECTION
+    ctx.fillStyle = "rgba(25,25,25, .2)";
     ctx.fillRect(
       main.start.x * scale,
       main.start.y * scale,
@@ -31,7 +50,7 @@ const renderer = (ctx: CanvasRenderingContext2D, game: Game) => {
           drawObj.img,
           new Point(drawObj.loc.x * scale, drawObj.loc.y * scale),
           scale,
-          drawObj.rotation
+          drawObj.options
         );
       });
     });
@@ -51,24 +70,39 @@ const renderer = (ctx: CanvasRenderingContext2D, game: Game) => {
     bitMap: ImageBitmap,
     drawLoc: Point,
     scale: number,
-    angle: number
+    options: { rotation: number; transformed: boolean }
   ): void {
-    ctx.save();
     const scaledHeight = bitMap.height * scale;
     const scaledWidth = bitMap.width * scale;
-    ctx.translate(drawLoc.x + scaledWidth / 2, drawLoc.y + scaledHeight / 2);
-    ctx.rotate((angle * Math.PI) / 180);
-    ctx.drawImage(
-      bitMap,
-      0,
-      0,
-      bitMap.width,
-      bitMap.height,
-      -scaledWidth / 2,
-      -scaledHeight / 2,
-      scaledWidth,
-      scaledHeight
-    );
+    ctx.save();
+    if (options.transformed) {
+      ctx.translate(drawLoc.x + scaledWidth / 2, drawLoc.y + scaledHeight / 2);
+      ctx.rotate((options.rotation * Math.PI) / 180);
+      ctx.drawImage(
+        bitMap,
+        0,
+        0,
+        bitMap.width,
+        bitMap.height,
+        -scaledWidth / 2,
+        -scaledHeight / 2,
+        scaledWidth,
+        scaledHeight
+      );
+    } else {
+      ctx.rotate((options.rotation * Math.PI) / 180);
+      ctx.drawImage(
+        bitMap,
+        0,
+        0,
+        bitMap.width,
+        bitMap.height,
+        drawLoc.x,
+        drawLoc.y,
+        scaledWidth,
+        scaledHeight
+      );
+    }
     ctx.restore();
   }
   return {

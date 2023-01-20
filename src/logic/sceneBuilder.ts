@@ -3,7 +3,10 @@ import Point from "./data_storage/Point";
 type drawableObj = {
   img: ImageBitmap;
   loc: Point;
-  rotation: number;
+  options: {
+    rotation: number;
+    transformed: boolean;
+  };
 };
 type SceneMap = Map<string, Array<drawableObj>>;
 type Scene = Array<Array<drawableObj>>;
@@ -12,26 +15,32 @@ type SceneBuilder = {
     zIndex: number,
     img: ImageBitmap,
     loc: Point,
-    rotation: number
+    options?: {
+      rotation: number;
+      transformed: boolean;
+    }
   ): void;
-  getDrawArray(): Scene;
+  getScene(): Scene;
 };
-const scene = () => {
+const sceneBuilder = (): SceneBuilder => {
   const _self: SceneMap = new Map();
   function addImgToScene(
     zIndex: number,
     img: ImageBitmap,
     loc: Point,
-    rotation: number
+    options: { rotation: number; transformed: boolean } = {
+      rotation: 0,
+      transformed: false,
+    }
   ): void {
     if (!_self.get(zIndex.toString())) {
       _self.set(zIndex.toString(), []);
     }
     const newArray = _self.get(zIndex.toString());
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    newArray!.push({ img, loc, rotation });
+    newArray!.push({ img, loc, options });
   }
-  function getDrawArray(): Scene {
+  function getScene(): Scene {
     const returnScene: Scene = [];
     const keys = Array.from(_self.keys());
     const sortedKeys = keys.sort((a, b): number => {
@@ -52,9 +61,9 @@ const scene = () => {
   }
   return {
     addImgToScene,
-    getDrawArray,
+    getScene,
   };
 };
 
-export { scene, Scene, SceneBuilder, drawableObj };
-export default scene;
+export { sceneBuilder, Scene, SceneBuilder, drawableObj };
+export default sceneBuilder;
