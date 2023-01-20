@@ -14,22 +14,27 @@ const modelSprites = (): ModelSpritesLoaded => {
       createImageBitmap(SpriteSheetImage, 32, 0, 16, 16),
       createImageBitmap(SpriteSheetImage, 48, 0, 16, 16),
       createImageBitmap(SpriteSheetImage, 64, 0, 16, 16),
+      createImageBitmap(SpriteSheetImage, 0, 0, 80, 16),
       //Battleship Parts
       createImageBitmap(SpriteSheetImage, 0, 16, 16, 16),
       createImageBitmap(SpriteSheetImage, 16, 16, 16, 16),
       createImageBitmap(SpriteSheetImage, 32, 16, 16, 16),
       createImageBitmap(SpriteSheetImage, 48, 16, 16, 16),
+      createImageBitmap(SpriteSheetImage, 0, 16, 64, 16),
       //Cruiser Parts
       createImageBitmap(SpriteSheetImage, 0, 32, 16, 16),
       createImageBitmap(SpriteSheetImage, 16, 32, 16, 16),
       createImageBitmap(SpriteSheetImage, 32, 32, 16, 16),
+      createImageBitmap(SpriteSheetImage, 0, 32, 48, 16),
       //Submarine Parts
       createImageBitmap(SpriteSheetImage, 0, 48, 16, 16),
       createImageBitmap(SpriteSheetImage, 16, 48, 16, 16),
       createImageBitmap(SpriteSheetImage, 32, 48, 16, 16),
+      createImageBitmap(SpriteSheetImage, 0, 48, 48, 16),
       //Destoryer Parts
       createImageBitmap(SpriteSheetImage, 0, 64, 16, 16),
       createImageBitmap(SpriteSheetImage, 16, 64, 16, 16),
+      createImageBitmap(SpriteSheetImage, 0, 64, 32, 16),
       //Water Tiles
       createImageBitmap(SpriteSheetImage, 48, 48, 16, 16),
       createImageBitmap(SpriteSheetImage, 64, 48, 16, 16),
@@ -39,11 +44,11 @@ const modelSprites = (): ModelSpritesLoaded => {
       //Damage Tiles
       createImageBitmap(SpriteSheetImage, 48, 32, 16, 16),
       createImageBitmap(SpriteSheetImage, 64, 32, 16, 16),
-      //Reticule
-      createImageBitmap(SpriteSheetImage, 64, 16, 16, 16),
       //Highlight Tiles
       createImageBitmap(SpriteSheetImage, 48, 80, 16, 16),
       createImageBitmap(SpriteSheetImage, 64, 80, 16, 16),
+      //Reticule
+      createImageBitmap(SpriteSheetImage, 64, 16, 16, 16),
       //Button Tiles
       //Green
       createImageBitmap(SpriteSheetImage, 0, 80, 1, 16),
@@ -68,34 +73,41 @@ const modelSprites = (): ModelSpritesLoaded => {
         sprites[2],
         sprites[3],
         sprites[4],
+        sprites[5],
       ];
-      Sprites.battleship = [sprites[5], sprites[6], sprites[7], sprites[8]];
-      Sprites.cruiser = [sprites[9], sprites[10], sprites[11]];
-      Sprites.submarine = [sprites[12], sprites[13], sprites[14]];
-      Sprites.destroyer = [sprites[15], sprites[16]];
-      Sprites.waterTiles = [sprites[17], sprites[18]];
-      Sprites.radarTiles = [sprites[19], sprites[20]];
-      Sprites.damageTiles = [sprites[21], sprites[22]];
-      Sprites.reticule = sprites[23];
-      Sprites.highlightTiles = [sprites[24], sprites[25]];
+      Sprites.battleship = [
+        sprites[6],
+        sprites[7],
+        sprites[8],
+        sprites[9],
+        sprites[10],
+      ];
+      Sprites.cruiser = [sprites[11], sprites[12], sprites[13], sprites[14]];
+      Sprites.submarine = [sprites[15], sprites[16], sprites[17], sprites[18]];
+      Sprites.destroyer = [sprites[19], sprites[20], sprites[21]];
+      Sprites.waterTiles = [sprites[22], sprites[23]];
+      Sprites.radarTiles = [sprites[24], sprites[25]];
+      Sprites.damageTiles = [sprites[26], sprites[27]];
+      Sprites.highlightTiles = [sprites[28], sprites[29]];
+      Sprites.reticule = sprites[30];
       Sprites.buttonTiles = {
         green: [
-          sprites[26],
-          sprites[27],
-          sprites[28],
-          sprites[29],
-          sprites[30],
           sprites[31],
           sprites[32],
-        ],
-        red: [
           sprites[33],
           sprites[34],
           sprites[35],
           sprites[36],
           sprites[37],
+        ],
+        red: [
           sprites[38],
           sprites[39],
+          sprites[40],
+          sprites[41],
+          sprites[42],
+          sprites[43],
+          sprites[44],
         ],
       };
       Sprites.loaded = true;
