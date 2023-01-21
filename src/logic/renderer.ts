@@ -46,12 +46,7 @@ const renderer = (ctx: CanvasRenderingContext2D, game: Game) => {
 
     scene.forEach((drawObjArray) => {
       drawObjArray.forEach((drawObj) => {
-        _drawSprite(
-          drawObj.img,
-          new Point(drawObj.loc.x * scale, drawObj.loc.y * scale),
-          scale,
-          drawObj.options
-        );
+        _drawSprite(drawObj.img, new Point(drawObj.loc.x * scale, drawObj.loc.y * scale), scale, drawObj.options);
       });
     });
   }
@@ -60,7 +55,6 @@ const renderer = (ctx: CanvasRenderingContext2D, game: Game) => {
       render(_lastScene);
     }
   }
-
   function _clearCanvas(): void {
     const scale = _gameInfo.canvas.scale;
     const trueSize = _gameInfo.canvas.trueSize;
@@ -90,6 +84,7 @@ const renderer = (ctx: CanvasRenderingContext2D, game: Game) => {
         scaledHeight
       );
     } else {
+      ctx.translate(drawLoc.x, drawLoc.y);
       ctx.rotate((options.rotation * Math.PI) / 180);
       ctx.drawImage(
         bitMap,
@@ -97,8 +92,8 @@ const renderer = (ctx: CanvasRenderingContext2D, game: Game) => {
         0,
         bitMap.width,
         bitMap.height,
-        drawLoc.x,
-        drawLoc.y,
+        0,
+        0 - (options.rotation === 90 ? scaledHeight : 0),
         scaledWidth,
         scaledHeight
       );
