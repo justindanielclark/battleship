@@ -54,10 +54,12 @@ window.addEventListener("resize", () => {
   game.updateViewSizes(canvas.getCanvasData());
   renderer.reRender();
 });
-canvasEL.addEventListener("click", function (e) {
-  game.handleClick(this.getBoundingClientRect(), new Point(e.x, e.y));
+canvasEL.addEventListener("mousedown", function (e) {
+  game.handleMouseDown(this.getBoundingClientRect(), new Point(e.x, e.y));
 });
-
+canvasEL.addEventListener("mouseup", function (e) {
+  game.handleMouseUp(this.getBoundingClientRect(), new Point(e.x, e.y));
+});
 canvasEL.addEventListener("mousemove", function (e) {
   game.handleMouseMove(this.getBoundingClientRect(), new Point(e.x, e.y));
 });
