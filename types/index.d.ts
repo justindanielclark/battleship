@@ -7,7 +7,7 @@ type CanvasData = {
 };
 type ModelSprites = {
   loaded: boolean;
-  reticule?: ImageBitmap;
+  reticule?: Array<ImageBitmap>;
   carrier?: Array<ImageBitmap>;
   battleship?: Array<ImageBitmap>;
   cruiser?: Array<ImageBitmap>;
@@ -24,7 +24,7 @@ type ModelSprites = {
 };
 type ModelSpritesLoaded = {
   loaded: boolean;
-  reticule: ImageBitmap;
+  reticule: Array<ImageBitmap>;
   carrier: Array<ImageBitmap>;
   battleship: Array<ImageBitmap>;
   cruiser: Array<ImageBitmap>;
