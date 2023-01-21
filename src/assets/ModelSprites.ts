@@ -49,6 +49,8 @@ const modelSprites = (): ModelSpritesLoaded => {
       createImageBitmap(SpriteSheetImage, 64, 80, 16, 16),
       //Reticule
       createImageBitmap(SpriteSheetImage, 64, 16, 16, 16),
+      createImageBitmap(SpriteSheetImage, 32, 75, 15, 21),
+      createImageBitmap(SpriteSheetImage, 16, 80, 15, 16),
       //Button Tiles
       //Green
       createImageBitmap(SpriteSheetImage, 0, 80, 1, 16),
@@ -89,25 +91,25 @@ const modelSprites = (): ModelSpritesLoaded => {
       Sprites.radarTiles = [sprites[24], sprites[25]];
       Sprites.damageTiles = [sprites[26], sprites[27]];
       Sprites.highlightTiles = [sprites[28], sprites[29]];
-      Sprites.reticule = sprites[30];
+      Sprites.reticule = [sprites[30], sprites[31], sprites[32]];
       Sprites.buttonTiles = {
         green: [
-          sprites[31],
-          sprites[32],
           sprites[33],
           sprites[34],
           sprites[35],
           sprites[36],
           sprites[37],
-        ],
-        red: [
           sprites[38],
           sprites[39],
+        ],
+        red: [
           sprites[40],
           sprites[41],
           sprites[42],
           sprites[43],
           sprites[44],
+          sprites[45],
+          sprites[46],
         ],
       };
       Sprites.loaded = true;
