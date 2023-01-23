@@ -69,7 +69,7 @@ type Game = {
   handleMouseUp(canvasData: DOMRect, mouseClickLocation: Point): void;
   handleMouseMove(canvasData: DOMRect, mouseMoveLocation: Point): void;
   handleMouseLeave(canvasData: DOMRect, mouseMoveLocation: Point): void;
-  initializeAfterAssetLoad(): void;
+  initializeDraggableObjects(): void;
 };
 type DraggableObject = {
   img: ImageBitmap;
@@ -229,6 +229,7 @@ const game = (): Game => {
         section3.start = new Point((drawer.end.x * 2) / 3, drawer.start.y);
         section3.end = new Point(drawer.end.x, drawer.end.y);
       }
+      resetDraggableObjectPositions();
     }
     _gameInfo.canvas.scale = canvasData.width / trueSize.width;
   }
@@ -411,7 +412,7 @@ const game = (): Game => {
   function assetsAreLoaded(): boolean {
     return sprites.model.loaded && sprites.text.loaded;
   }
-  function initializeAfterAssetLoad(): void {
+  function initializeDraggableObjects(): void {
     const ships: Array<{ name: ShipType; length: number }> = [
       { name: "carrier", length: 5 },
       { name: "battleship", length: 4 },
@@ -419,7 +420,7 @@ const game = (): Game => {
       { name: "submarine", length: 3 },
       { name: "destroyer", length: 2 },
     ];
-    const [section1, section2] = _gameInfo.canvas.views.drawer.sections.slice(0, 2);
+    const [section1, section2] = _gameInfo.canvas.views.drawer.sections.slice(1, 3);
     ships.forEach((ship, i) => {
       //HORIZONTAL
       draggableObjects.push({
@@ -427,8 +428,8 @@ const game = (): Game => {
         name: ship.name,
         start: new Point(section1.start.x + 20, section1.start.y + 20 + i * 16),
         end: new Point(section1.start.x + 20 + 16 * ship.length, section1.start.y + 20 + 16 + i * 16),
-        defaultStart: new Point(section1.start.x + 20, section1.start.y + 20),
-        defaultEnd: new Point(section1.start.x + 20 + 16 * ship.length, section1.start.y + 20 + 16),
+        defaultStart: new Point(section1.start.x + 20, section1.start.y + 20 + i * 16),
+        defaultEnd: new Point(section1.start.x + 20 + 16 * ship.length, section1.start.y + 20 + 16 + i * 16),
         visible: true,
         rotation: 0,
       });
@@ -443,6 +444,35 @@ const game = (): Game => {
         visible: true,
         rotation: 90,
       });
+    });
+  }
+  function resetDraggableObjectPositions(): void {
+    if (draggableObjects.length > 0) {
+      const ships: Array<{ name: ShipType; length: number }> = [
+        { name: "carrier", length: 5 },
+        { name: "battleship", length: 4 },
+        { name: "cruiser", length: 3 },
+        { name: "submarine", length: 3 },
+        { name: "destroyer", length: 2 },
+      ];
+      const [section1, section2] = _gameInfo.canvas.views.drawer.sections.slice(1, 3);
+      ships.forEach((ship, i) => {
+        const drgObj1 = draggableObjects[i * 2];
+        const drgObj2 = draggableObjects[i * 2 + 1];
+        drgObj1.start = new Point(section1.start.x + 20, section1.start.y + 20 + i * 16);
+        drgObj1.end = new Point(section1.start.x + 20 + 16 * ship.length, section1.start.y + 20 + 16 + i * 16);
+        drgObj1.defaultStart = new Point(section1.start.x + 20, section1.start.y + 20 + i * 16);
+        drgObj1.defaultEnd = new Point(section1.start.x + 20 + 16 * ship.length, section1.start.y + 20 + 16 + i * 16);
+        drgObj2.start = new Point(section2.start.x + 20 + i * 16, section2.start.y + 20);
+        drgObj2.end = new Point(section2.start.x + 20 + 16 + i * 16, section2.start.y + 20 + 16 * ship.length);
+        drgObj2.defaultStart = new Point(section2.start.x + 20 + i * 16, section2.start.y + 20);
+        drgObj2.defaultEnd = new Point(section2.start.x + 20 + 16 + i * 16, section2.start.y + 20 + 16 * ship.length);
+      });
+    }
+  }
+  function resetDraggableObjectVisibility(): void {
+    draggableObjects.forEach((drgObj) => {
+      drgObj.visible = true;
     });
   }
   function handleMouseDown(canvasData: DOMRect, mouseClickLocation: Point): void {
@@ -499,19 +529,26 @@ const game = (): Game => {
           const endCheckLoc = new Point(currentDraggedObject.end.x - 8, currentDraggedObject.end.y - 8);
           const startWithinBounds = isWithinBoardTiles(startCheckLoc);
           const endWithinBounds = isWithinBoardTiles(endCheckLoc);
-          const shipType = currentDraggedObject.name;
-          const dropPoint = currentHighlightedTiles[0].loc;
-          const isValid = _boards[_gameInfo.playerTurn].isValidPlacementLocation(
-            dropPoint,
-            new Ship(shipType, orientation)
-          );
-          if (startWithinBounds && endWithinBounds && isValid) {
-            _boards[_gameInfo.playerTurn].addShip(dropPoint, new Ship(shipType, orientation));
-            draggableObjects.forEach((drgObj) => {
-              if (drgObj.name === shipType) {
-                drgObj.visible = false;
-              }
-            });
+          if (startWithinBounds && endWithinBounds) {
+            const shipType = currentDraggedObject.name;
+            const dropPoint = currentHighlightedTiles[0].loc;
+            const isValid = _boards[_gameInfo.playerTurn].isValidPlacementLocation(
+              dropPoint,
+              new Ship(shipType, orientation)
+            );
+            if (isValid) {
+              _boards[_gameInfo.playerTurn].addShip(dropPoint, new Ship(shipType, orientation));
+              draggableObjects.forEach((drgObj) => {
+                if (drgObj.name === shipType) {
+                  drgObj.visible = false;
+                }
+              });
+            } else {
+              currentDraggedObject.start.x = currentDraggedObject.defaultStart.x;
+              currentDraggedObject.start.y = currentDraggedObject.defaultStart.y;
+              currentDraggedObject.end.x = currentDraggedObject.defaultEnd.x;
+              currentDraggedObject.end.y = currentDraggedObject.defaultEnd.y;
+            }
           } else {
             currentDraggedObject.start.x = currentDraggedObject.defaultStart.x;
             currentDraggedObject.start.y = currentDraggedObject.defaultStart.y;
@@ -690,7 +727,7 @@ const game = (): Game => {
     handleMouseUp,
     handleMouseMove,
     handleMouseLeave,
-    initializeAfterAssetLoad,
+    initializeDraggableObjects,
   };
 };
 

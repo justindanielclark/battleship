@@ -5,15 +5,7 @@ import Renderer from "./logic/renderer";
 import Point from "./logic/data_storage/Point";
 
 const { body } = document;
-body.classList.add(
-  "bg-stone-800",
-  "flex",
-  "justify-center",
-  "items-center",
-  "min-h-screen",
-  "max-h-screen",
-  "p-4"
-);
+body.classList.add("bg-stone-800", "flex", "justify-center", "items-center", "min-h-screen", "max-h-screen", "p-4");
 
 const game = Game();
 const canvas = Canvas();
@@ -35,7 +27,7 @@ function update(timestamp: number) {
     switch (game.getState()) {
       case "initializing": {
         if (game.assetsAreLoaded()) {
-          game.initializeAfterAssetLoad();
+          game.initializeDraggableObjects();
           game.setState("settingPieces");
           // game.setState("turnReview");
           // game.setState("attack");
