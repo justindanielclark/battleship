@@ -81,6 +81,12 @@ type DraggableObject = {
   visible: boolean;
   rotation: number;
 };
+type ClickableButton = {
+  imgs: Array<ImageBitmap>;
+  start: Point;
+  end: Point;
+  text: string;
+};
 
 const zIndexes = {
   background: 0,
@@ -401,241 +407,43 @@ const game = (): Game => {
         }
       });
     }
-    function addText(scene: SceneBuilder, text: string, loc: Point): void {
-      //todo
-    }
-    function addAppearingText(scene: SceneBuilder, text: string, loc: Point): void {
-      //todo
-    }
   }
   function assetsAreLoaded(): boolean {
     return sprites.model.loaded && sprites.text.loaded;
   }
   function initializeAfterAssetLoad(): void {
-    draggableObjects.push(
-      //Horizontal Items
-      {
-        img: sprites.model.carrier.at(-1) as ImageBitmap,
-        name: "carrier",
-        start: new Point(
-          _gameInfo.canvas.views.drawer.sections[0].start.x + 20,
-          _gameInfo.canvas.views.drawer.sections[0].start.y + 20
-        ),
-        end: new Point(
-          _gameInfo.canvas.views.drawer.sections[0].start.x + 100,
-          _gameInfo.canvas.views.drawer.sections[0].start.y + 36
-        ),
-        defaultStart: new Point(
-          _gameInfo.canvas.views.drawer.sections[0].start.x + 20,
-          _gameInfo.canvas.views.drawer.sections[0].start.y + 20
-        ),
-        defaultEnd: new Point(
-          _gameInfo.canvas.views.drawer.sections[0].start.x + 100,
-          _gameInfo.canvas.views.drawer.sections[0].start.y + 36
-        ),
+    const ships: Array<{ name: ShipType; length: number }> = [
+      { name: "carrier", length: 5 },
+      { name: "battleship", length: 4 },
+      { name: "cruiser", length: 3 },
+      { name: "submarine", length: 3 },
+      { name: "destroyer", length: 2 },
+    ];
+    const [section1, section2] = _gameInfo.canvas.views.drawer.sections.slice(0, 2);
+    ships.forEach((ship, i) => {
+      //HORIZONTAL
+      draggableObjects.push({
+        img: sprites.model[ship.name].at(-1) as ImageBitmap,
+        name: ship.name,
+        start: new Point(section1.start.x + 20, section1.start.y + 20 + i * 16),
+        end: new Point(section1.start.x + 20 + 16 * ship.length, section1.start.y + 20 + 16 + i * 16),
+        defaultStart: new Point(section1.start.x + 20, section1.start.y + 20),
+        defaultEnd: new Point(section1.start.x + 20 + 16 * ship.length, section1.start.y + 20 + 16),
         visible: true,
         rotation: 0,
-      },
-      {
-        img: sprites.model.battleship.at(-1) as ImageBitmap,
-        name: "battleship",
-        start: new Point(
-          _gameInfo.canvas.views.drawer.sections[0].start.x + 20,
-          _gameInfo.canvas.views.drawer.sections[0].start.y + 36
-        ),
-        end: new Point(
-          _gameInfo.canvas.views.drawer.sections[0].start.x + 84,
-          _gameInfo.canvas.views.drawer.sections[0].start.y + 52
-        ),
-        defaultStart: new Point(
-          _gameInfo.canvas.views.drawer.sections[0].start.x + 20,
-          _gameInfo.canvas.views.drawer.sections[0].start.y + 36
-        ),
-        defaultEnd: new Point(
-          _gameInfo.canvas.views.drawer.sections[0].start.x + 84,
-          _gameInfo.canvas.views.drawer.sections[0].start.y + 52
-        ),
-        visible: true,
-        rotation: 0,
-      },
-      {
-        img: sprites.model.cruiser.at(-1) as ImageBitmap,
-        name: "cruiser",
-        start: new Point(
-          _gameInfo.canvas.views.drawer.sections[0].start.x + 20,
-          _gameInfo.canvas.views.drawer.sections[0].start.y + 52
-        ),
-        end: new Point(
-          _gameInfo.canvas.views.drawer.sections[0].start.x + 68,
-          _gameInfo.canvas.views.drawer.sections[0].start.y + 68
-        ),
-        defaultStart: new Point(
-          _gameInfo.canvas.views.drawer.sections[0].start.x + 20,
-          _gameInfo.canvas.views.drawer.sections[0].start.y + 52
-        ),
-        defaultEnd: new Point(
-          _gameInfo.canvas.views.drawer.sections[0].start.x + 68,
-          _gameInfo.canvas.views.drawer.sections[0].start.y + 68
-        ),
-        visible: true,
-        rotation: 0,
-      },
-      {
-        img: sprites.model.submarine.at(-1) as ImageBitmap,
-        name: "submarine",
-        start: new Point(
-          _gameInfo.canvas.views.drawer.sections[0].start.x + 20,
-          _gameInfo.canvas.views.drawer.sections[0].start.y + 68
-        ),
-        end: new Point(
-          _gameInfo.canvas.views.drawer.sections[0].start.x + 68,
-          _gameInfo.canvas.views.drawer.sections[0].start.y + 84
-        ),
-        defaultStart: new Point(
-          _gameInfo.canvas.views.drawer.sections[0].start.x + 20,
-          _gameInfo.canvas.views.drawer.sections[0].start.y + 68
-        ),
-        defaultEnd: new Point(
-          _gameInfo.canvas.views.drawer.sections[0].start.x + 68,
-          _gameInfo.canvas.views.drawer.sections[0].start.y + 84
-        ),
-        visible: true,
-        rotation: 0,
-      },
-      {
-        img: sprites.model.destroyer.at(-1) as ImageBitmap,
-        name: "destroyer",
-        start: new Point(
-          _gameInfo.canvas.views.drawer.sections[0].start.x + 20,
-          _gameInfo.canvas.views.drawer.sections[0].start.y + 84
-        ),
-        end: new Point(
-          _gameInfo.canvas.views.drawer.sections[0].start.x + 52,
-          _gameInfo.canvas.views.drawer.sections[0].start.y + 100
-        ),
-        defaultStart: new Point(
-          _gameInfo.canvas.views.drawer.sections[0].start.x + 20,
-          _gameInfo.canvas.views.drawer.sections[0].start.y + 84
-        ),
-        defaultEnd: new Point(
-          _gameInfo.canvas.views.drawer.sections[0].start.x + 52,
-          _gameInfo.canvas.views.drawer.sections[0].start.y + 100
-        ),
-        visible: true,
-        rotation: 0,
-      },
-      //Vertical Items
-      {
-        img: sprites.model.carrier.at(-1) as ImageBitmap,
-        name: "carrier",
-        start: new Point(
-          _gameInfo.canvas.views.drawer.sections[1].start.x + 20,
-          _gameInfo.canvas.views.drawer.sections[1].start.y + 20
-        ),
-        end: new Point(
-          _gameInfo.canvas.views.drawer.sections[1].start.x + 36,
-          _gameInfo.canvas.views.drawer.sections[1].start.y + 100
-        ),
-        defaultStart: new Point(
-          _gameInfo.canvas.views.drawer.sections[1].start.x + 20,
-          _gameInfo.canvas.views.drawer.sections[1].start.y + 20
-        ),
-        defaultEnd: new Point(
-          _gameInfo.canvas.views.drawer.sections[1].start.x + 36,
-          _gameInfo.canvas.views.drawer.sections[1].start.y + 100
-        ),
+      });
+      //VERTICAL
+      draggableObjects.push({
+        img: sprites.model[ship.name].at(-1) as ImageBitmap,
+        name: ship.name,
+        start: new Point(section2.start.x + 20 + i * 16, section2.start.y + 20),
+        end: new Point(section2.start.x + 20 + 16 + i * 16, section2.start.y + 20 + 16 * ship.length),
+        defaultStart: new Point(section2.start.x + 20 + i * 16, section2.start.y + 20),
+        defaultEnd: new Point(section2.start.x + 20 + 16 + i * 16, section2.start.y + 20 + 16 * ship.length),
         visible: true,
         rotation: 90,
-      },
-      {
-        img: sprites.model.battleship.at(-1) as ImageBitmap,
-        name: "battleship",
-        start: new Point(
-          _gameInfo.canvas.views.drawer.sections[1].start.x + 36,
-          _gameInfo.canvas.views.drawer.sections[1].start.y + 20
-        ),
-        end: new Point(
-          _gameInfo.canvas.views.drawer.sections[1].start.x + 52,
-          _gameInfo.canvas.views.drawer.sections[1].start.y + 84
-        ),
-        defaultStart: new Point(
-          _gameInfo.canvas.views.drawer.sections[1].start.x + 36,
-          _gameInfo.canvas.views.drawer.sections[1].start.y + 20
-        ),
-        defaultEnd: new Point(
-          _gameInfo.canvas.views.drawer.sections[1].start.x + 52,
-          _gameInfo.canvas.views.drawer.sections[1].start.y + 84
-        ),
-        visible: true,
-        rotation: 90,
-      },
-      {
-        img: sprites.model.cruiser.at(-1) as ImageBitmap,
-        name: "cruiser",
-        start: new Point(
-          _gameInfo.canvas.views.drawer.sections[1].start.x + 52,
-          _gameInfo.canvas.views.drawer.sections[1].start.y + 20
-        ),
-        end: new Point(
-          _gameInfo.canvas.views.drawer.sections[1].start.x + 68,
-          _gameInfo.canvas.views.drawer.sections[1].start.y + 68
-        ),
-        defaultStart: new Point(
-          _gameInfo.canvas.views.drawer.sections[1].start.x + 52,
-          _gameInfo.canvas.views.drawer.sections[1].start.y + 20
-        ),
-        defaultEnd: new Point(
-          _gameInfo.canvas.views.drawer.sections[1].start.x + 68,
-          _gameInfo.canvas.views.drawer.sections[1].start.y + 68
-        ),
-        visible: true,
-        rotation: 90,
-      },
-      {
-        img: sprites.model.submarine.at(-1) as ImageBitmap,
-        name: "submarine",
-        start: new Point(
-          _gameInfo.canvas.views.drawer.sections[1].start.x + 68,
-          _gameInfo.canvas.views.drawer.sections[1].start.y + 20
-        ),
-        end: new Point(
-          _gameInfo.canvas.views.drawer.sections[1].start.x + 84,
-          _gameInfo.canvas.views.drawer.sections[1].start.y + 68
-        ),
-        defaultStart: new Point(
-          _gameInfo.canvas.views.drawer.sections[1].start.x + 68,
-          _gameInfo.canvas.views.drawer.sections[1].start.y + 20
-        ),
-        defaultEnd: new Point(
-          _gameInfo.canvas.views.drawer.sections[1].start.x + 84,
-          _gameInfo.canvas.views.drawer.sections[1].start.y + 68
-        ),
-        visible: true,
-        rotation: 90,
-      },
-      {
-        img: sprites.model.destroyer.at(-1) as ImageBitmap,
-        name: "destroyer",
-        start: new Point(
-          _gameInfo.canvas.views.drawer.sections[1].start.x + 84,
-          _gameInfo.canvas.views.drawer.sections[1].start.y + 20
-        ),
-        end: new Point(
-          _gameInfo.canvas.views.drawer.sections[1].start.x + 100,
-          _gameInfo.canvas.views.drawer.sections[1].start.y + 52
-        ),
-        defaultStart: new Point(
-          _gameInfo.canvas.views.drawer.sections[1].start.x + 84,
-          _gameInfo.canvas.views.drawer.sections[1].start.y + 20
-        ),
-        defaultEnd: new Point(
-          _gameInfo.canvas.views.drawer.sections[1].start.x + 100,
-          _gameInfo.canvas.views.drawer.sections[1].start.y + 52
-        ),
-        visible: true,
-        rotation: 90,
-      }
-    );
+      });
+    });
   }
   function handleMouseDown(canvasData: DOMRect, mouseClickLocation: Point): void {
     const scale = _gameInfo.canvas.scale;
