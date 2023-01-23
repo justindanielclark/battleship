@@ -3,7 +3,7 @@ import Point from "./data_storage/Point";
 import modelSprites from "../assets/ModelSprites";
 import textSprites from "../assets/TextSprites";
 import { sceneBuilder, Scene, SceneBuilder } from "./sceneBuilder";
-import Ship, { ShipPart, ShipType } from "./data_storage/Ship";
+import Ship, { Orientation, ShipPart, ShipType } from "./data_storage/Ship";
 type GameState = "initializing" | "settingPieces" | "turnReview" | "attack" | "end";
 type BoardConfig = {
   xSize: number;
@@ -111,6 +111,8 @@ const game = (): Game => {
   const draggableObjects: Array<DraggableObject> = [];
   let currentDraggedObject: DraggableObject | undefined;
   const currentHighlightedTiles: Array<{ loc: Point; valid: boolean }> = [];
+  const currentTextToDisplay: Array<{ loc: Point; str: string }> = [];
+  let textDisplayProgress: number = 0;
   const _gameInfo: GameInfo = {
     state: "initializing",
     playerTurn: 0,
@@ -416,20 +418,20 @@ const game = (): Game => {
         img: sprites.model.carrier.at(-1) as ImageBitmap,
         name: "carrier",
         start: new Point(
-          _gameInfo.canvas.views.drawer.sections[1].start.x + 20,
-          _gameInfo.canvas.views.drawer.sections[1].start.y + 20
+          _gameInfo.canvas.views.drawer.sections[0].start.x + 20,
+          _gameInfo.canvas.views.drawer.sections[0].start.y + 20
         ),
         end: new Point(
-          _gameInfo.canvas.views.drawer.sections[1].start.x + 100,
-          _gameInfo.canvas.views.drawer.sections[1].start.y + 36
+          _gameInfo.canvas.views.drawer.sections[0].start.x + 100,
+          _gameInfo.canvas.views.drawer.sections[0].start.y + 36
         ),
         defaultStart: new Point(
-          _gameInfo.canvas.views.drawer.sections[1].start.x + 20,
-          _gameInfo.canvas.views.drawer.sections[1].start.y + 20
+          _gameInfo.canvas.views.drawer.sections[0].start.x + 20,
+          _gameInfo.canvas.views.drawer.sections[0].start.y + 20
         ),
         defaultEnd: new Point(
-          _gameInfo.canvas.views.drawer.sections[1].start.x + 100,
-          _gameInfo.canvas.views.drawer.sections[1].start.y + 36
+          _gameInfo.canvas.views.drawer.sections[0].start.x + 100,
+          _gameInfo.canvas.views.drawer.sections[0].start.y + 36
         ),
         visible: true,
         rotation: 0,
@@ -438,20 +440,20 @@ const game = (): Game => {
         img: sprites.model.battleship.at(-1) as ImageBitmap,
         name: "battleship",
         start: new Point(
-          _gameInfo.canvas.views.drawer.sections[1].start.x + 20,
-          _gameInfo.canvas.views.drawer.sections[1].start.y + 36
+          _gameInfo.canvas.views.drawer.sections[0].start.x + 20,
+          _gameInfo.canvas.views.drawer.sections[0].start.y + 36
         ),
         end: new Point(
-          _gameInfo.canvas.views.drawer.sections[1].start.x + 84,
-          _gameInfo.canvas.views.drawer.sections[1].start.y + 52
+          _gameInfo.canvas.views.drawer.sections[0].start.x + 84,
+          _gameInfo.canvas.views.drawer.sections[0].start.y + 52
         ),
         defaultStart: new Point(
-          _gameInfo.canvas.views.drawer.sections[1].start.x + 20,
-          _gameInfo.canvas.views.drawer.sections[1].start.y + 36
+          _gameInfo.canvas.views.drawer.sections[0].start.x + 20,
+          _gameInfo.canvas.views.drawer.sections[0].start.y + 36
         ),
         defaultEnd: new Point(
-          _gameInfo.canvas.views.drawer.sections[1].start.x + 84,
-          _gameInfo.canvas.views.drawer.sections[1].start.y + 52
+          _gameInfo.canvas.views.drawer.sections[0].start.x + 84,
+          _gameInfo.canvas.views.drawer.sections[0].start.y + 52
         ),
         visible: true,
         rotation: 0,
@@ -460,20 +462,20 @@ const game = (): Game => {
         img: sprites.model.cruiser.at(-1) as ImageBitmap,
         name: "cruiser",
         start: new Point(
-          _gameInfo.canvas.views.drawer.sections[1].start.x + 20,
-          _gameInfo.canvas.views.drawer.sections[1].start.y + 52
+          _gameInfo.canvas.views.drawer.sections[0].start.x + 20,
+          _gameInfo.canvas.views.drawer.sections[0].start.y + 52
         ),
         end: new Point(
-          _gameInfo.canvas.views.drawer.sections[1].start.x + 68,
-          _gameInfo.canvas.views.drawer.sections[1].start.y + 68
+          _gameInfo.canvas.views.drawer.sections[0].start.x + 68,
+          _gameInfo.canvas.views.drawer.sections[0].start.y + 68
         ),
         defaultStart: new Point(
-          _gameInfo.canvas.views.drawer.sections[1].start.x + 20,
-          _gameInfo.canvas.views.drawer.sections[1].start.y + 52
+          _gameInfo.canvas.views.drawer.sections[0].start.x + 20,
+          _gameInfo.canvas.views.drawer.sections[0].start.y + 52
         ),
         defaultEnd: new Point(
-          _gameInfo.canvas.views.drawer.sections[1].start.x + 68,
-          _gameInfo.canvas.views.drawer.sections[1].start.y + 68
+          _gameInfo.canvas.views.drawer.sections[0].start.x + 68,
+          _gameInfo.canvas.views.drawer.sections[0].start.y + 68
         ),
         visible: true,
         rotation: 0,
@@ -482,20 +484,20 @@ const game = (): Game => {
         img: sprites.model.submarine.at(-1) as ImageBitmap,
         name: "submarine",
         start: new Point(
-          _gameInfo.canvas.views.drawer.sections[1].start.x + 20,
-          _gameInfo.canvas.views.drawer.sections[1].start.y + 68
+          _gameInfo.canvas.views.drawer.sections[0].start.x + 20,
+          _gameInfo.canvas.views.drawer.sections[0].start.y + 68
         ),
         end: new Point(
-          _gameInfo.canvas.views.drawer.sections[1].start.x + 68,
-          _gameInfo.canvas.views.drawer.sections[1].start.y + 84
+          _gameInfo.canvas.views.drawer.sections[0].start.x + 68,
+          _gameInfo.canvas.views.drawer.sections[0].start.y + 84
         ),
         defaultStart: new Point(
-          _gameInfo.canvas.views.drawer.sections[1].start.x + 20,
-          _gameInfo.canvas.views.drawer.sections[1].start.y + 68
+          _gameInfo.canvas.views.drawer.sections[0].start.x + 20,
+          _gameInfo.canvas.views.drawer.sections[0].start.y + 68
         ),
         defaultEnd: new Point(
-          _gameInfo.canvas.views.drawer.sections[1].start.x + 68,
-          _gameInfo.canvas.views.drawer.sections[1].start.y + 84
+          _gameInfo.canvas.views.drawer.sections[0].start.x + 68,
+          _gameInfo.canvas.views.drawer.sections[0].start.y + 84
         ),
         visible: true,
         rotation: 0,
@@ -504,20 +506,20 @@ const game = (): Game => {
         img: sprites.model.destroyer.at(-1) as ImageBitmap,
         name: "destroyer",
         start: new Point(
-          _gameInfo.canvas.views.drawer.sections[1].start.x + 20,
-          _gameInfo.canvas.views.drawer.sections[1].start.y + 84
+          _gameInfo.canvas.views.drawer.sections[0].start.x + 20,
+          _gameInfo.canvas.views.drawer.sections[0].start.y + 84
         ),
         end: new Point(
-          _gameInfo.canvas.views.drawer.sections[1].start.x + 52,
-          _gameInfo.canvas.views.drawer.sections[1].start.y + 100
+          _gameInfo.canvas.views.drawer.sections[0].start.x + 52,
+          _gameInfo.canvas.views.drawer.sections[0].start.y + 100
         ),
         defaultStart: new Point(
-          _gameInfo.canvas.views.drawer.sections[1].start.x + 20,
-          _gameInfo.canvas.views.drawer.sections[1].start.y + 84
+          _gameInfo.canvas.views.drawer.sections[0].start.x + 20,
+          _gameInfo.canvas.views.drawer.sections[0].start.y + 84
         ),
         defaultEnd: new Point(
-          _gameInfo.canvas.views.drawer.sections[1].start.x + 52,
-          _gameInfo.canvas.views.drawer.sections[1].start.y + 100
+          _gameInfo.canvas.views.drawer.sections[0].start.x + 52,
+          _gameInfo.canvas.views.drawer.sections[0].start.y + 100
         ),
         visible: true,
         rotation: 0,
@@ -527,20 +529,20 @@ const game = (): Game => {
         img: sprites.model.carrier.at(-1) as ImageBitmap,
         name: "carrier",
         start: new Point(
-          _gameInfo.canvas.views.drawer.sections[2].start.x + 20,
-          _gameInfo.canvas.views.drawer.sections[2].start.y + 20
+          _gameInfo.canvas.views.drawer.sections[1].start.x + 20,
+          _gameInfo.canvas.views.drawer.sections[1].start.y + 20
         ),
         end: new Point(
-          _gameInfo.canvas.views.drawer.sections[2].start.x + 36,
-          _gameInfo.canvas.views.drawer.sections[2].start.y + 100
+          _gameInfo.canvas.views.drawer.sections[1].start.x + 36,
+          _gameInfo.canvas.views.drawer.sections[1].start.y + 100
         ),
         defaultStart: new Point(
-          _gameInfo.canvas.views.drawer.sections[2].start.x + 20,
-          _gameInfo.canvas.views.drawer.sections[2].start.y + 20
+          _gameInfo.canvas.views.drawer.sections[1].start.x + 20,
+          _gameInfo.canvas.views.drawer.sections[1].start.y + 20
         ),
         defaultEnd: new Point(
-          _gameInfo.canvas.views.drawer.sections[2].start.x + 36,
-          _gameInfo.canvas.views.drawer.sections[2].start.y + 100
+          _gameInfo.canvas.views.drawer.sections[1].start.x + 36,
+          _gameInfo.canvas.views.drawer.sections[1].start.y + 100
         ),
         visible: true,
         rotation: 90,
@@ -549,20 +551,20 @@ const game = (): Game => {
         img: sprites.model.battleship.at(-1) as ImageBitmap,
         name: "battleship",
         start: new Point(
-          _gameInfo.canvas.views.drawer.sections[2].start.x + 36,
-          _gameInfo.canvas.views.drawer.sections[2].start.y + 20
+          _gameInfo.canvas.views.drawer.sections[1].start.x + 36,
+          _gameInfo.canvas.views.drawer.sections[1].start.y + 20
         ),
         end: new Point(
-          _gameInfo.canvas.views.drawer.sections[2].start.x + 52,
-          _gameInfo.canvas.views.drawer.sections[2].start.y + 84
+          _gameInfo.canvas.views.drawer.sections[1].start.x + 52,
+          _gameInfo.canvas.views.drawer.sections[1].start.y + 84
         ),
         defaultStart: new Point(
-          _gameInfo.canvas.views.drawer.sections[2].start.x + 36,
-          _gameInfo.canvas.views.drawer.sections[2].start.y + 20
+          _gameInfo.canvas.views.drawer.sections[1].start.x + 36,
+          _gameInfo.canvas.views.drawer.sections[1].start.y + 20
         ),
         defaultEnd: new Point(
-          _gameInfo.canvas.views.drawer.sections[2].start.x + 52,
-          _gameInfo.canvas.views.drawer.sections[2].start.y + 84
+          _gameInfo.canvas.views.drawer.sections[1].start.x + 52,
+          _gameInfo.canvas.views.drawer.sections[1].start.y + 84
         ),
         visible: true,
         rotation: 90,
@@ -571,20 +573,20 @@ const game = (): Game => {
         img: sprites.model.cruiser.at(-1) as ImageBitmap,
         name: "cruiser",
         start: new Point(
-          _gameInfo.canvas.views.drawer.sections[2].start.x + 52,
-          _gameInfo.canvas.views.drawer.sections[2].start.y + 20
+          _gameInfo.canvas.views.drawer.sections[1].start.x + 52,
+          _gameInfo.canvas.views.drawer.sections[1].start.y + 20
         ),
         end: new Point(
-          _gameInfo.canvas.views.drawer.sections[2].start.x + 68,
-          _gameInfo.canvas.views.drawer.sections[2].start.y + 68
+          _gameInfo.canvas.views.drawer.sections[1].start.x + 68,
+          _gameInfo.canvas.views.drawer.sections[1].start.y + 68
         ),
         defaultStart: new Point(
-          _gameInfo.canvas.views.drawer.sections[2].start.x + 52,
-          _gameInfo.canvas.views.drawer.sections[2].start.y + 20
+          _gameInfo.canvas.views.drawer.sections[1].start.x + 52,
+          _gameInfo.canvas.views.drawer.sections[1].start.y + 20
         ),
         defaultEnd: new Point(
-          _gameInfo.canvas.views.drawer.sections[2].start.x + 68,
-          _gameInfo.canvas.views.drawer.sections[2].start.y + 68
+          _gameInfo.canvas.views.drawer.sections[1].start.x + 68,
+          _gameInfo.canvas.views.drawer.sections[1].start.y + 68
         ),
         visible: true,
         rotation: 90,
@@ -593,20 +595,20 @@ const game = (): Game => {
         img: sprites.model.submarine.at(-1) as ImageBitmap,
         name: "submarine",
         start: new Point(
-          _gameInfo.canvas.views.drawer.sections[2].start.x + 68,
-          _gameInfo.canvas.views.drawer.sections[2].start.y + 20
+          _gameInfo.canvas.views.drawer.sections[1].start.x + 68,
+          _gameInfo.canvas.views.drawer.sections[1].start.y + 20
         ),
         end: new Point(
-          _gameInfo.canvas.views.drawer.sections[2].start.x + 84,
-          _gameInfo.canvas.views.drawer.sections[2].start.y + 68
+          _gameInfo.canvas.views.drawer.sections[1].start.x + 84,
+          _gameInfo.canvas.views.drawer.sections[1].start.y + 68
         ),
         defaultStart: new Point(
-          _gameInfo.canvas.views.drawer.sections[2].start.x + 68,
-          _gameInfo.canvas.views.drawer.sections[2].start.y + 20
+          _gameInfo.canvas.views.drawer.sections[1].start.x + 68,
+          _gameInfo.canvas.views.drawer.sections[1].start.y + 20
         ),
         defaultEnd: new Point(
-          _gameInfo.canvas.views.drawer.sections[2].start.x + 84,
-          _gameInfo.canvas.views.drawer.sections[2].start.y + 68
+          _gameInfo.canvas.views.drawer.sections[1].start.x + 84,
+          _gameInfo.canvas.views.drawer.sections[1].start.y + 68
         ),
         visible: true,
         rotation: 90,
@@ -615,20 +617,20 @@ const game = (): Game => {
         img: sprites.model.destroyer.at(-1) as ImageBitmap,
         name: "destroyer",
         start: new Point(
-          _gameInfo.canvas.views.drawer.sections[2].start.x + 84,
-          _gameInfo.canvas.views.drawer.sections[2].start.y + 20
+          _gameInfo.canvas.views.drawer.sections[1].start.x + 84,
+          _gameInfo.canvas.views.drawer.sections[1].start.y + 20
         ),
         end: new Point(
-          _gameInfo.canvas.views.drawer.sections[2].start.x + 100,
-          _gameInfo.canvas.views.drawer.sections[2].start.y + 52
+          _gameInfo.canvas.views.drawer.sections[1].start.x + 100,
+          _gameInfo.canvas.views.drawer.sections[1].start.y + 52
         ),
         defaultStart: new Point(
-          _gameInfo.canvas.views.drawer.sections[2].start.x + 84,
-          _gameInfo.canvas.views.drawer.sections[2].start.y + 20
+          _gameInfo.canvas.views.drawer.sections[1].start.x + 84,
+          _gameInfo.canvas.views.drawer.sections[1].start.y + 20
         ),
         defaultEnd: new Point(
-          _gameInfo.canvas.views.drawer.sections[2].start.x + 100,
-          _gameInfo.canvas.views.drawer.sections[2].start.y + 52
+          _gameInfo.canvas.views.drawer.sections[1].start.x + 100,
+          _gameInfo.canvas.views.drawer.sections[1].start.y + 52
         ),
         visible: true,
         rotation: 90,
@@ -664,17 +666,58 @@ const game = (): Game => {
     }
   }
   function handleMouseUp(canvasData: DOMRect, mouseClickLocation: Point): void {
+    const { mouse } = _gameInfo;
     const scale = _gameInfo.canvas.scale;
     const trueX = (mouseClickLocation.x - canvasData.left) / scale;
     const trueY = (mouseClickLocation.y - canvasData.top) / scale;
     switch (_gameInfo.state) {
       case "settingPieces": {
-        _gameInfo.mouse.isHoldingDraggable = false;
+        if (mouse.isHoldingDraggable && currentDraggedObject) {
+          let orientation: Orientation;
+          if (currentDraggedObject.rotation === 0) {
+            currentDraggedObject.start.x = trueX - mouse.holdingDraggableOffsets.x;
+            currentDraggedObject.end.x = currentDraggedObject.start.x + currentDraggedObject.img.width;
+            currentDraggedObject.start.y = trueY - mouse.holdingDraggableOffsets.y;
+            currentDraggedObject.end.y = currentDraggedObject.start.y + currentDraggedObject.img.height;
+            orientation = "EW";
+          } else {
+            currentDraggedObject.start.x = trueX - mouse.holdingDraggableOffsets.x;
+            currentDraggedObject.end.x = currentDraggedObject.start.x + currentDraggedObject.img.height;
+            currentDraggedObject.start.y = trueY - mouse.holdingDraggableOffsets.y;
+            currentDraggedObject.end.y = currentDraggedObject.start.y + currentDraggedObject.img.width;
+            orientation = "NS";
+          }
+          const startCheckLoc = new Point(currentDraggedObject.start.x + 8, currentDraggedObject.start.y + 8);
+          const endCheckLoc = new Point(currentDraggedObject.end.x - 8, currentDraggedObject.end.y - 8);
+          const startWithinBounds = isWithinBoardTiles(startCheckLoc);
+          const endWithinBounds = isWithinBoardTiles(endCheckLoc);
+          const shipType = currentDraggedObject.name;
+          const dropPoint = currentHighlightedTiles[0].loc;
+          const isValid = _boards[_gameInfo.playerTurn].isValidPlacementLocation(
+            dropPoint,
+            new Ship(shipType, orientation)
+          );
+          if (startWithinBounds && endWithinBounds && isValid) {
+            _boards[_gameInfo.playerTurn].addShip(dropPoint, new Ship(shipType, orientation));
+            draggableObjects.forEach((drgObj) => {
+              if (drgObj.name === shipType) {
+                drgObj.visible = false;
+              }
+            });
+          } else {
+            currentDraggedObject.start.x = currentDraggedObject.defaultStart.x;
+            currentDraggedObject.start.y = currentDraggedObject.defaultStart.y;
+            currentDraggedObject.end.x = currentDraggedObject.defaultEnd.x;
+            currentDraggedObject.end.y = currentDraggedObject.defaultEnd.y;
+          }
+        }
         if (isHoveringOverDraggable(new Point(trueX, trueY)).found) {
           _gameInfo.mouse.isHoveringOverDraggable = true;
         } else {
           _gameInfo.mouse.isHoveringOverDraggable = false;
         }
+        _gameInfo.mouse.isHoldingDraggable = false;
+        currentHighlightedTiles.splice(0, currentHighlightedTiles.length);
         break;
       }
       case "attack": {
@@ -811,7 +854,7 @@ const game = (): Game => {
       }
       i++;
     }
-    return drgObj ? { found: true, draggableObj: drgObj } : { found: false };
+    return drgObj && drgObj.visible ? { found: true, draggableObj: drgObj } : { found: false };
   }
   function isWithinBoardTiles(trueMouseLoc: Point): boolean {
     return (
