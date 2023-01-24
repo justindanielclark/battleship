@@ -57,6 +57,7 @@ type GameInfo = {
   mouse: MouseConfig;
   canvas: CanvasConfig;
 };
+type TextDisplayArray = Array<{ loc: Point; img: ImageBitmap }>;
 type Game = {
   getGameConfig(): GameConfig;
   getGameInfo(): GameInfo;
@@ -116,9 +117,11 @@ const game = (): Game => {
   // Start: Items Initialized After Asset Load
   const draggableObjects: Array<DraggableObject> = [];
   let currentDraggedObject: DraggableObject | undefined;
-  const currentHighlightedTiles: Array<{ loc: Point; valid: boolean }> = [];
-  const currentTextToDisplay: Array<{ loc: Point; str: string }> = [];
-  let textDisplayProgress: number = 0;
+  const highlightedTiles: Array<{ loc: Point; valid: boolean }> = [];
+  const textToDisplay: TextDisplayArray = [];
+  let appearingText: { loc: Point; str: string };
+  const appearingTextToDisplay: TextDisplayArray = [];
+  let appearingTextToDisplayProgress: number;
   const _gameInfo: GameInfo = {
     state: "initializing",
     playerTurn: 0,
@@ -173,6 +176,25 @@ const game = (): Game => {
   }
   function setState(gameState: GameState): void {
     _gameInfo.state = gameState;
+    setupState();
+  }
+  function setupState(): void {
+    switch (_gameInfo.state) {
+      case "settingPieces": {
+        transformTextToDisplayableFormat(
+          textToDisplay,
+          "Drag and Drop Your Ships Into Your Desired Layout",
+          new Point(
+            _gameInfo.canvas.views.drawer.sections[0].start.x + 15,
+            _gameInfo.canvas.views.drawer.sections[0].start.y + 15
+          ),
+          new Point(
+            _gameInfo.canvas.views.drawer.sections[0].end.x - 10,
+            _gameInfo.canvas.views.drawer.sections[0].end.y - 10
+          )
+        );
+      }
+    }
   }
   function updateViewSizes(canvasData: CanvasData): void {
     const canvas = _gameInfo.canvas;
@@ -243,20 +265,11 @@ const game = (): Game => {
         // Tiles
         addFriendlyBoardToScene(newScene, _boards[_gameInfo.playerTurn]);
         // Highlighted Tiles
-        currentHighlightedTiles.forEach((tile) => {
-          newScene.addImgToScene(
-            zIndexes.highlightTiles,
-            tile.valid
-              ? sprites.model.radarTiles[(tile.loc.x + tile.loc.y) % 2]
-              : sprites.model.damageTiles[(tile.loc.x + tile.loc.y) % 2],
-            new Point(
-              16 + _gameInfo.canvas.views.main.boardPosition.start.x + tile.loc.x * 16,
-              16 + _gameInfo.canvas.views.main.boardPosition.start.y + tile.loc.y * 16
-            )
-          );
-        });
+        addHighlightedTitles(newScene);
         // Draggable Objects
         addDraggableObjects(newScene);
+        // Appearing Text
+        addText(newScene);
         // Reticule
         if (_gameInfo.mouse.isOnScreen) {
           if (_gameInfo.mouse.isHoldingDraggable) {
@@ -304,8 +317,6 @@ const game = (): Game => {
         //
       }
     }
-    //Render Reticule
-
     return newScene.getScene();
 
     function addTileDesignationsToScene(scene: SceneBuilder): void {
@@ -407,6 +418,25 @@ const game = (): Game => {
           });
         }
       });
+    }
+    function addHighlightedTitles(scene: SceneBuilder): void {
+      highlightedTiles.forEach((tile) => {
+        scene.addImgToScene(
+          zIndexes.highlightTiles,
+          tile.valid
+            ? sprites.model.radarTiles[(tile.loc.x + tile.loc.y) % 2]
+            : sprites.model.damageTiles[(tile.loc.x + tile.loc.y) % 2],
+          new Point(
+            16 + _gameInfo.canvas.views.main.boardPosition.start.x + tile.loc.x * 16,
+            16 + _gameInfo.canvas.views.main.boardPosition.start.y + tile.loc.y * 16
+          )
+        );
+      });
+    }
+    function addText(scene: SceneBuilder): void {
+      for (const item of textToDisplay) {
+        scene.addImgToScene(zIndexes.text, item.img, item.loc);
+      }
     }
   }
   function assetsAreLoaded(): boolean {
@@ -531,7 +561,7 @@ const game = (): Game => {
           const endWithinBounds = isWithinBoardTiles(endCheckLoc);
           if (startWithinBounds && endWithinBounds) {
             const shipType = currentDraggedObject.name;
-            const dropPoint = currentHighlightedTiles[0].loc;
+            const dropPoint = highlightedTiles[0].loc;
             const isValid = _boards[_gameInfo.playerTurn].isValidPlacementLocation(
               dropPoint,
               new Ship(shipType, orientation)
@@ -562,7 +592,7 @@ const game = (): Game => {
           _gameInfo.mouse.isHoveringOverDraggable = false;
         }
         _gameInfo.mouse.isHoldingDraggable = false;
-        currentHighlightedTiles.splice(0, currentHighlightedTiles.length);
+        highlightedTiles.splice(0, highlightedTiles.length);
         break;
       }
       case "attack": {
@@ -603,7 +633,7 @@ const game = (): Game => {
             const endWithinBounds = isWithinBoardTiles(endCheckLoc);
             const startTile = startWithinBounds ? getTileAtLocation(startCheckLoc) : undefined;
             const endTile = endWithinBounds ? getTileAtLocation(endCheckLoc) : undefined;
-            currentHighlightedTiles.length = 0;
+            highlightedTiles.length = 0;
             if (startTile && endTile) {
               if (currentDraggedObject.rotation === 0) {
                 const isValid = _boards[_gameInfo.playerTurn].isValidPlacementLocation(
@@ -611,7 +641,7 @@ const game = (): Game => {
                   new Ship(currentDraggedObject.name, "EW")
                 );
                 for (let i = startTile.x; i <= endTile.x; i++) {
-                  currentHighlightedTiles.push({
+                  highlightedTiles.push({
                     loc: new Point(i, startTile.y),
                     valid: isValid,
                   });
@@ -622,7 +652,7 @@ const game = (): Game => {
                   new Ship(currentDraggedObject.name, "NS")
                 );
                 for (let i = startTile.y; i <= endTile.y; i++) {
-                  currentHighlightedTiles.push({
+                  highlightedTiles.push({
                     loc: new Point(startTile.x, i),
                     valid: isValid,
                   });
@@ -631,14 +661,14 @@ const game = (): Game => {
             } else if (startTile) {
               if (currentDraggedObject.rotation === 0) {
                 for (let i = startTile.x; i < _gameConfig.boardConfig.xSize; i++) {
-                  currentHighlightedTiles.push({
+                  highlightedTiles.push({
                     loc: new Point(i, startTile.y),
                     valid: false,
                   });
                 }
               } else {
                 for (let i = startTile.y; i < _gameConfig.boardConfig.ySize; i++) {
-                  currentHighlightedTiles.push({
+                  highlightedTiles.push({
                     loc: new Point(startTile.x, i),
                     valid: false,
                   });
@@ -647,14 +677,14 @@ const game = (): Game => {
             } else if (endTile) {
               if (currentDraggedObject.rotation === 0) {
                 for (let i = endTile.x; i >= 0; i--) {
-                  currentHighlightedTiles.push({
+                  highlightedTiles.push({
                     loc: new Point(i, endTile.y),
                     valid: false,
                   });
                 }
               } else {
                 for (let i = endTile.y; i >= 0; i--) {
-                  currentHighlightedTiles.push({
+                  highlightedTiles.push({
                     loc: new Point(endTile.x, i),
                     valid: false,
                   });
@@ -714,6 +744,26 @@ const game = (): Game => {
       Math.floor((trueMouseLoc.x - _gameInfo.canvas.views.main.boardPosition.start.x - 16) / 16),
       Math.floor((trueMouseLoc.y - _gameInfo.canvas.views.main.boardPosition.start.y - 16) / 16)
     );
+  }
+  function transformTextToDisplayableFormat(displayArray: TextDisplayArray, text: string, start: Point, end: Point) {
+    const words = text.split(" ");
+    let x = start.x;
+    let y = start.y;
+    for (const word of words) {
+      if (x + word.length * 9 > end.x) {
+        y += 9;
+        x = start.x;
+      }
+      const wordArr = word.split("");
+      for (const char of wordArr) {
+        displayArray.push({
+          loc: new Point(x, y),
+          img: sprites.text[char as validTextSpriteAccessor],
+        });
+        x += 8;
+      }
+      x += 4;
+    }
   }
   return {
     getGameConfig,
