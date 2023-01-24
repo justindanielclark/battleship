@@ -94,9 +94,10 @@ const zIndexes = {
   tiles: 1,
   highlightTiles: 2,
   text: 3,
-  ships: 4,
-  draggableItems: 5,
-  reticule: 6,
+  appearingText: 4,
+  ships: 5,
+  draggableItems: 6,
+  reticule: 7,
 };
 
 const game = (): Game => {
@@ -120,7 +121,6 @@ const game = (): Game => {
   let currentDraggedObject: DraggableObject | undefined;
   const highlightedTiles: Array<{ loc: Point; valid: boolean }> = [];
   const textToDisplay: TextDisplayArray = [];
-  let appearingText: { loc: Point; str: string };
   const appearingTextToDisplay: TextDisplayArray = [];
   let appearingTextToDisplayProgress: number;
   const _gameInfo: GameInfo = {
@@ -181,19 +181,20 @@ const game = (): Game => {
     setupState();
   }
   function setupState(): void {
+    appearingTextToDisplayProgress = 0;
     switch (_gameInfo.state) {
       case "settingPieces": {
         currentScene.flushAll();
         transformTextToDisplayableFormat(
-          textToDisplay,
-          "Drag and Drop Your Ships Into Your Desired Layout",
+          appearingTextToDisplay,
+          "Drag and Drop Your Ships Into Your Desired Layout ~~Click Confirm When Complete",
           new Point(
-            _gameInfo.canvas.views.drawer.sections[0].start.x + 15,
-            _gameInfo.canvas.views.drawer.sections[0].start.y + 15
+            _gameInfo.canvas.views.drawer.sections[0].start.x + 5,
+            _gameInfo.canvas.views.drawer.sections[0].start.y + 5
           ),
           new Point(
-            _gameInfo.canvas.views.drawer.sections[0].end.x - 10,
-            _gameInfo.canvas.views.drawer.sections[0].end.y - 10
+            _gameInfo.canvas.views.drawer.sections[0].end.x - 5,
+            _gameInfo.canvas.views.drawer.sections[0].end.y - 5
           )
         );
         // Tile Designations
@@ -202,6 +203,8 @@ const game = (): Game => {
         addFriendlyBoardToScene(currentScene, _boards[_gameInfo.playerTurn]);
         // Static Text
         addTextToScene(currentScene);
+
+        addAppearingTextToScene(currentScene);
       }
     }
   }
@@ -270,6 +273,7 @@ const game = (): Game => {
         currentScene.flushZIndex(zIndexes.reticule, zIndexes.draggableItems, zIndexes.highlightTiles);
         addHighlightedTitlesToScene(currentScene);
         addDraggableObjectsToScene(currentScene);
+        addAppearingTextToScene(currentScene);
         // Reticule
         if (_gameInfo.mouse.isOnScreen) {
           if (_gameInfo.mouse.isHoldingDraggable) {
@@ -627,11 +631,16 @@ const game = (): Game => {
       }
       const wordArr = word.split("");
       for (const char of wordArr) {
-        displayArray.push({
-          loc: new Point(x, y),
-          img: sprites.text[char as validTextSpriteAccessor],
-        });
-        x += 8;
+        if (char === "~") {
+          x = start.x;
+          y += 9;
+        } else {
+          displayArray.push({
+            loc: new Point(x, y),
+            img: sprites.text[char as validTextSpriteAccessor],
+          });
+          x += 8;
+        }
       }
       x += 4;
     }
@@ -751,6 +760,13 @@ const game = (): Game => {
   function addTextToScene(scene: SceneBuilder): void {
     for (const item of textToDisplay) {
       scene.addImgToScene(zIndexes.text, item.img, item.loc);
+    }
+  }
+  function addAppearingTextToScene(scene: SceneBuilder): void {
+    if (appearingTextToDisplayProgress < appearingTextToDisplay.length) {
+      const { img, loc } = appearingTextToDisplay[appearingTextToDisplayProgress];
+      scene.addImgToScene(zIndexes.appearingText, img, loc);
+      appearingTextToDisplayProgress++;
     }
   }
   return {
