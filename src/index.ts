@@ -46,6 +46,19 @@ window.addEventListener("resize", () => {
   game.updateViewSizes(canvas.getCanvasData());
   renderer.reRender();
 });
+canvasEL.addEventListener("touchstart", function (e) {
+  game.handleMouseDown(this.getBoundingClientRect(), new Point(e.touches[0].clientX, e.touches[0].clientY));
+  e.preventDefault();
+});
+canvasEL.addEventListener("touchmove", function (e) {
+  game.handleMouseMove(this.getBoundingClientRect(), new Point(e.touches[0].clientX, e.touches[0].clientY));
+  e.preventDefault();
+});
+canvasEL.addEventListener("touchend", function (e) {
+  //! currently doesnot fire as touchend removes a 'touch' from e.touches. Need to implement touch tracking and only track the first touch if no other touches exist.
+  game.handleMouseUp(this.getBoundingClientRect(), new Point(e.touches[0].clientX, e.touches[0].clientY));
+  e.preventDefault();
+});
 canvasEL.addEventListener("mousedown", function (e) {
   game.handleMouseDown(this.getBoundingClientRect(), new Point(e.x, e.y));
 });
