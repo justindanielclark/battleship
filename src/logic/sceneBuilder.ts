@@ -21,6 +21,8 @@ type SceneBuilder = {
     }
   ): void;
   getScene(): Scene;
+  flushZIndex(...zIndex: Array<number>): void;
+  flushAll(): void;
 };
 const sceneBuilder = (): SceneBuilder => {
   const _self: SceneMap = new Map();
@@ -39,6 +41,16 @@ const sceneBuilder = (): SceneBuilder => {
     const newArray = _self.get(zIndex.toString());
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     newArray!.push({ img, loc, options });
+  }
+  function flushZIndex(...zIndexes: Array<number>): void {
+    for (const zIndex of zIndexes) {
+      _self.delete(zIndex.toString());
+    }
+  }
+  function flushAll(): void {
+    for (const key of _self.keys()) {
+      _self.delete(key);
+    }
   }
   function getScene(): Scene {
     const returnScene: Scene = [];
@@ -62,6 +74,8 @@ const sceneBuilder = (): SceneBuilder => {
   return {
     addImgToScene,
     getScene,
+    flushZIndex,
+    flushAll,
   };
 };
 

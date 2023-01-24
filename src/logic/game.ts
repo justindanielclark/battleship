@@ -95,7 +95,8 @@ const zIndexes = {
   highlightTiles: 2,
   text: 3,
   ships: 4,
-  reticule: 5,
+  draggableItems: 5,
+  reticule: 6,
 };
 
 const game = (): Game => {
@@ -164,6 +165,7 @@ const game = (): Game => {
       },
     },
   };
+  const currentScene = sceneBuilder();
   // End: Items Initialized After Asset Load
   function getGameConfig(): GameConfig {
     return _gameConfig;
@@ -181,6 +183,7 @@ const game = (): Game => {
   function setupState(): void {
     switch (_gameInfo.state) {
       case "settingPieces": {
+        currentScene.flushAll();
         transformTextToDisplayableFormat(
           textToDisplay,
           "Drag and Drop Your Ships Into Your Desired Layout",
@@ -193,6 +196,12 @@ const game = (): Game => {
             _gameInfo.canvas.views.drawer.sections[0].end.y - 10
           )
         );
+        // Tile Designations
+        addTileDesignationsToScene(currentScene);
+        // Tiles
+        addFriendlyBoardToScene(currentScene, _boards[_gameInfo.playerTurn]);
+        // Static Text
+        addTextToScene(currentScene);
       }
     }
   }
@@ -256,36 +265,27 @@ const game = (): Game => {
     _gameInfo.canvas.scale = canvasData.width / trueSize.width;
   }
   function getScene(): Scene {
-    const newScene = sceneBuilder();
-    const main = _gameInfo.canvas.views.main;
     switch (_gameInfo.state) {
       case "settingPieces": {
-        // Tile Designations
-        addTileDesignationsToScene(newScene);
-        // Tiles
-        addFriendlyBoardToScene(newScene, _boards[_gameInfo.playerTurn]);
-        // Highlighted Tiles
-        addHighlightedTitles(newScene);
-        // Draggable Objects
-        addDraggableObjects(newScene);
-        // Appearing Text
-        addText(newScene);
+        currentScene.flushZIndex(zIndexes.reticule, zIndexes.draggableItems, zIndexes.highlightTiles);
+        addHighlightedTitlesToScene(currentScene);
+        addDraggableObjectsToScene(currentScene);
         // Reticule
         if (_gameInfo.mouse.isOnScreen) {
           if (_gameInfo.mouse.isHoldingDraggable) {
-            newScene.addImgToScene(
+            currentScene.addImgToScene(
               zIndexes.reticule,
               sprites.model.reticule[2],
               new Point(_gameInfo.mouse.currentLoc.x - 4, _gameInfo.mouse.currentLoc.y - 4)
             );
           } else if (_gameInfo.mouse.isHoveringOverDraggable) {
-            newScene.addImgToScene(
+            currentScene.addImgToScene(
               zIndexes.reticule,
               sprites.model.reticule[1],
               new Point(_gameInfo.mouse.currentLoc.x - 4, _gameInfo.mouse.currentLoc.y)
             );
           } else {
-            newScene.addImgToScene(
+            currentScene.addImgToScene(
               zIndexes.reticule,
               sprites.model.reticule[0],
               new Point(_gameInfo.mouse.currentLoc.x - 8, _gameInfo.mouse.currentLoc.y - 8)
@@ -295,149 +295,18 @@ const game = (): Game => {
         break;
       }
       case "turnReview": {
-        // Tile Designations
-        addTileDesignationsToScene(newScene);
-        //Tiles
-        addFriendlyBoardToScene(newScene, _boards[_gameInfo.playerTurn]);
+        //
         break;
       }
       case "attack": {
-        addTileDesignationsToScene(newScene);
-        addEnemyBoardToScene(newScene, _boards[(_gameInfo.playerTurn + 1) % 2]);
-        if (_gameInfo.mouse.isOnScreen) {
-          newScene.addImgToScene(
-            zIndexes.reticule,
-            sprites.model.reticule[0],
-            new Point(_gameInfo.mouse.currentLoc.x - 8, _gameInfo.mouse.currentLoc.y - 8)
-          );
-        }
+        //
         break;
       }
       default: {
         //
       }
     }
-    return newScene.getScene();
-
-    function addTileDesignationsToScene(scene: SceneBuilder): void {
-      for (let i = 0; i < _gameConfig.boardConfig.xSize; i++) {
-        scene.addImgToScene(
-          zIndexes.text,
-          sprites.text[String.fromCharCode(i + 65) as validTextSpriteAccessor],
-          new Point(16 * i + 4 + main.boardPosition.start.x + 16, main.boardPosition.start.y + 4)
-        );
-      }
-      for (let i = 1; i <= _gameConfig.boardConfig.ySize; i++) {
-        if (i < 10) {
-          scene.addImgToScene(
-            zIndexes.text,
-            sprites.text[i.toString() as validTextSpriteAccessor],
-            new Point(main.boardPosition.start.x, main.boardPosition.start.y + i * 16 + 4)
-          );
-        } else {
-          const larger = Math.floor(i / 10);
-          const smaller = i % 10;
-          scene.addImgToScene(
-            zIndexes.text,
-            sprites.text[larger.toString() as validTextSpriteAccessor],
-            new Point(main.boardPosition.start.x - 4, main.boardPosition.start.y + i * 16 + 4)
-          );
-          scene.addImgToScene(
-            zIndexes.text,
-            sprites.text[smaller.toString() as validTextSpriteAccessor],
-            new Point(main.boardPosition.start.x + 4, main.boardPosition.start.y + i * 16 + 4)
-          );
-        }
-      }
-    }
-    function addFriendlyBoardToScene(scene: SceneBuilder, board: Board): void {
-      for (let x = 0; x < _gameConfig.boardConfig.xSize; x++) {
-        for (let y = 0; y < _gameConfig.boardConfig.ySize; y++) {
-          const searchPoint = new Point(x, y);
-          const drawPoint = new Point(
-            x * 16 + main.boardPosition.start.x + 16,
-            y * 16 + main.boardPosition.start.y + 16
-          );
-          if (board.isOccupied(searchPoint)) {
-            const part: ShipPart = board.getOccupied(searchPoint) as ShipPart;
-            const partParent = part.parent;
-            if (part.damaged) {
-              scene.addImgToScene(zIndexes.tiles, sprites.model.damageTiles[(x + y) % 2], drawPoint);
-            } else {
-              scene.addImgToScene(zIndexes.tiles, sprites.model.waterTiles[(x + y) % 2], drawPoint);
-            }
-            scene.addImgToScene(
-              zIndexes.ships,
-              sprites.model[partParent.shipType][part.partNum],
-              new Point(drawPoint.x, drawPoint.y),
-              {
-                rotation: partParent.orientation === "NS" ? 90 : 0,
-                transformed: partParent.orientation === "NS" ? true : false,
-              }
-            );
-          } else {
-            scene.addImgToScene(zIndexes.tiles, sprites.model.waterTiles[(x + y) % 2], drawPoint);
-          }
-        }
-      }
-    }
-    function addEnemyBoardToScene(scene: SceneBuilder, board: Board): void {
-      for (let x = 0; x < _gameConfig.boardConfig.xSize; x++) {
-        for (let y = 0; y < _gameConfig.boardConfig.ySize; y++) {
-          const searchPoint = new Point(x, y);
-          const drawPoint = new Point(
-            x * 16 + main.boardPosition.start.x + 16,
-            y * 16 + main.boardPosition.start.y + 16
-          );
-          if (board.getTargeted(searchPoint)) {
-            if (board.isOccupied(searchPoint)) {
-              const part: ShipPart = board.getOccupied(searchPoint) as ShipPart;
-              const partParent = part.parent;
-              if (!partParent.isAfloat()) {
-                scene.addImgToScene(zIndexes.ships, sprites.model[partParent.shipType][part.partNum], drawPoint, {
-                  rotation: partParent.orientation === "NS" ? 90 : 0,
-                  transformed: true,
-                });
-              }
-              scene.addImgToScene(zIndexes.tiles, sprites.model.damageTiles[(x + y) % 2], drawPoint);
-            } else {
-              scene.addImgToScene(zIndexes.tiles, sprites.model.waterTiles[(x + y) % 2], drawPoint);
-            }
-          } else {
-            scene.addImgToScene(zIndexes.tiles, sprites.model.radarTiles[(x + y) % 2], drawPoint);
-          }
-        }
-      }
-    }
-    function addDraggableObjects(scene: SceneBuilder): void {
-      draggableObjects.forEach((obj) => {
-        if (obj.visible) {
-          scene.addImgToScene(zIndexes.ships, obj.img, obj.start, {
-            rotation: obj.rotation,
-            transformed: false,
-          });
-        }
-      });
-    }
-    function addHighlightedTitles(scene: SceneBuilder): void {
-      highlightedTiles.forEach((tile) => {
-        scene.addImgToScene(
-          zIndexes.highlightTiles,
-          tile.valid
-            ? sprites.model.radarTiles[(tile.loc.x + tile.loc.y) % 2]
-            : sprites.model.damageTiles[(tile.loc.x + tile.loc.y) % 2],
-          new Point(
-            16 + _gameInfo.canvas.views.main.boardPosition.start.x + tile.loc.x * 16,
-            16 + _gameInfo.canvas.views.main.boardPosition.start.y + tile.loc.y * 16
-          )
-        );
-      });
-    }
-    function addText(scene: SceneBuilder): void {
-      for (const item of textToDisplay) {
-        scene.addImgToScene(zIndexes.text, item.img, item.loc);
-      }
-    }
+    return currentScene.getScene();
   }
   function assetsAreLoaded(): boolean {
     return sprites.model.loaded && sprites.text.loaded;
@@ -573,6 +442,8 @@ const game = (): Game => {
                   drgObj.visible = false;
                 }
               });
+              currentScene.flushZIndex(zIndexes.tiles, zIndexes.ships);
+              addFriendlyBoardToScene(currentScene, _boards[_gameInfo.playerTurn]);
             } else {
               currentDraggedObject.start.x = currentDraggedObject.defaultStart.x;
               currentDraggedObject.start.y = currentDraggedObject.defaultStart.y;
@@ -763,6 +634,123 @@ const game = (): Game => {
         x += 8;
       }
       x += 4;
+    }
+  }
+  function addTileDesignationsToScene(scene: SceneBuilder): void {
+    const { main } = _gameInfo.canvas.views;
+    for (let i = 0; i < _gameConfig.boardConfig.xSize; i++) {
+      scene.addImgToScene(
+        zIndexes.text,
+        sprites.text[String.fromCharCode(i + 65) as validTextSpriteAccessor],
+        new Point(16 * i + 4 + main.boardPosition.start.x + 16, main.boardPosition.start.y + 4)
+      );
+    }
+    for (let i = 1; i <= _gameConfig.boardConfig.ySize; i++) {
+      if (i < 10) {
+        scene.addImgToScene(
+          zIndexes.text,
+          sprites.text[i.toString() as validTextSpriteAccessor],
+          new Point(main.boardPosition.start.x, main.boardPosition.start.y + i * 16 + 4)
+        );
+      } else {
+        const larger = Math.floor(i / 10);
+        const smaller = i % 10;
+        scene.addImgToScene(
+          zIndexes.text,
+          sprites.text[larger.toString() as validTextSpriteAccessor],
+          new Point(main.boardPosition.start.x - 4, main.boardPosition.start.y + i * 16 + 4)
+        );
+        scene.addImgToScene(
+          zIndexes.text,
+          sprites.text[smaller.toString() as validTextSpriteAccessor],
+          new Point(main.boardPosition.start.x + 4, main.boardPosition.start.y + i * 16 + 4)
+        );
+      }
+    }
+  }
+  function addFriendlyBoardToScene(scene: SceneBuilder, board: Board): void {
+    const { main } = _gameInfo.canvas.views;
+    for (let x = 0; x < _gameConfig.boardConfig.xSize; x++) {
+      for (let y = 0; y < _gameConfig.boardConfig.ySize; y++) {
+        const searchPoint = new Point(x, y);
+        const drawPoint = new Point(x * 16 + main.boardPosition.start.x + 16, y * 16 + main.boardPosition.start.y + 16);
+        if (board.isOccupied(searchPoint)) {
+          const part: ShipPart = board.getOccupied(searchPoint) as ShipPart;
+          const partParent = part.parent;
+          if (part.damaged) {
+            scene.addImgToScene(zIndexes.tiles, sprites.model.damageTiles[(x + y) % 2], drawPoint);
+          } else {
+            scene.addImgToScene(zIndexes.tiles, sprites.model.waterTiles[(x + y) % 2], drawPoint);
+          }
+          scene.addImgToScene(
+            zIndexes.ships,
+            sprites.model[partParent.shipType][part.partNum],
+            new Point(drawPoint.x, drawPoint.y),
+            {
+              rotation: partParent.orientation === "NS" ? 90 : 0,
+              transformed: partParent.orientation === "NS" ? true : false,
+            }
+          );
+        } else {
+          scene.addImgToScene(zIndexes.tiles, sprites.model.waterTiles[(x + y) % 2], drawPoint);
+        }
+      }
+    }
+  }
+  function addEnemyBoardToScene(scene: SceneBuilder, board: Board): void {
+    const { main } = _gameInfo.canvas.views;
+    for (let x = 0; x < _gameConfig.boardConfig.xSize; x++) {
+      for (let y = 0; y < _gameConfig.boardConfig.ySize; y++) {
+        const searchPoint = new Point(x, y);
+        const drawPoint = new Point(x * 16 + main.boardPosition.start.x + 16, y * 16 + main.boardPosition.start.y + 16);
+        if (board.getTargeted(searchPoint)) {
+          if (board.isOccupied(searchPoint)) {
+            const part: ShipPart = board.getOccupied(searchPoint) as ShipPart;
+            const partParent = part.parent;
+            if (!partParent.isAfloat()) {
+              scene.addImgToScene(zIndexes.ships, sprites.model[partParent.shipType][part.partNum], drawPoint, {
+                rotation: partParent.orientation === "NS" ? 90 : 0,
+                transformed: true,
+              });
+            }
+            scene.addImgToScene(zIndexes.tiles, sprites.model.damageTiles[(x + y) % 2], drawPoint);
+          } else {
+            scene.addImgToScene(zIndexes.tiles, sprites.model.waterTiles[(x + y) % 2], drawPoint);
+          }
+        } else {
+          scene.addImgToScene(zIndexes.tiles, sprites.model.radarTiles[(x + y) % 2], drawPoint);
+        }
+      }
+    }
+  }
+  function addDraggableObjectsToScene(scene: SceneBuilder): void {
+    const { main } = _gameInfo.canvas.views;
+    draggableObjects.forEach((obj) => {
+      if (obj.visible) {
+        scene.addImgToScene(zIndexes.draggableItems, obj.img, obj.start, {
+          rotation: obj.rotation,
+          transformed: false,
+        });
+      }
+    });
+  }
+  function addHighlightedTitlesToScene(scene: SceneBuilder): void {
+    highlightedTiles.forEach((tile) => {
+      scene.addImgToScene(
+        zIndexes.highlightTiles,
+        tile.valid
+          ? sprites.model.radarTiles[(tile.loc.x + tile.loc.y) % 2]
+          : sprites.model.damageTiles[(tile.loc.x + tile.loc.y) % 2],
+        new Point(
+          16 + _gameInfo.canvas.views.main.boardPosition.start.x + tile.loc.x * 16,
+          16 + _gameInfo.canvas.views.main.boardPosition.start.y + tile.loc.y * 16
+        )
+      );
+    });
+  }
+  function addTextToScene(scene: SceneBuilder): void {
+    for (const item of textToDisplay) {
+      scene.addImgToScene(zIndexes.text, item.img, item.loc);
     }
   }
   return {
