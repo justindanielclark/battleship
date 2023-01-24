@@ -13,10 +13,7 @@ const canvas = () => {
   }
   function get2dRenderingContext(): CanvasRenderingContext2D {
     const renderingContext = _self.getContext("2d");
-    if (
-      !renderingContext ||
-      !(renderingContext instanceof CanvasRenderingContext2D)
-    ) {
+    if (!renderingContext || !(renderingContext instanceof CanvasRenderingContext2D)) {
       throw new Error("Unable to retrieve CanvasRenderingContext2D");
     }
     return renderingContext;
@@ -24,11 +21,16 @@ const canvas = () => {
   function _updateCanvasData(): void {
     let greater;
     let lesser;
-    if (window.innerHeight > window.innerWidth) {
-      ({ innerHeight: greater, innerWidth: lesser } = window);
+    const windowInnerHeight = window.innerHeight - 36;
+    const windowInnerWidth = window.innerWidth - 36;
+
+    if (windowInnerHeight > windowInnerWidth) {
+      greater = windowInnerHeight;
+      lesser = windowInnerWidth;
       _data.orientation = "portrait";
     } else {
-      ({ innerHeight: lesser, innerWidth: greater } = window);
+      greater = windowInnerWidth;
+      lesser = windowInnerHeight;
       _data.orientation = "landscape";
     }
     while (lesser % 3 !== 0) {

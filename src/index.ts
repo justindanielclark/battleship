@@ -10,7 +10,7 @@ body.classList.add("bg-stone-800", "flex", "justify-center", "items-center", "mi
 const game = Game();
 const canvas = Canvas();
 const canvasEL = canvas.getHTMLCanvasElement();
-canvasEL.classList.add("cursor-none");
+canvasEL.classList.add("cursor-none", "border-8", "border-amber-500");
 body.append(canvas.getHTMLCanvasElement());
 canvas.update();
 game.updateViewSizes(canvas.getCanvasData());
