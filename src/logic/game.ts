@@ -50,6 +50,7 @@ type MouseConfig = {
 type GameConfig = {
   boardConfig: BoardConfig;
   updateSpeed: number;
+  appearingTextSpeed: number;
 };
 type GameInfo = {
   playerTurn: 0 | 1;
@@ -63,14 +64,14 @@ type Game = {
   getGameInfo(): GameInfo;
   getScene(): Scene;
   getState(): GameState;
-  assetsAreLoaded(): boolean;
+  areAssetsLoaded(): boolean;
   setState(gameState: GameState): void;
   updateViewSizes(canvasData: CanvasData): void;
   handleMouseDown(canvasData: DOMRect, mouseClickLocation: Point): void;
   handleMouseUp(canvasData: DOMRect, mouseClickLocation: Point): void;
   handleMouseMove(canvasData: DOMRect, mouseMoveLocation: Point): void;
   handleMouseLeave(canvasData: DOMRect, mouseMoveLocation: Point): void;
-  initializeDraggableObjects(): void;
+  initializeValuesAfterAssetsLoaded(): void;
 };
 type DraggableObject = {
   img: ImageBitmap;
@@ -82,11 +83,11 @@ type DraggableObject = {
   visible: boolean;
   rotation: number;
 };
-type ClickableButton = {
-  imgs: Array<ImageBitmap>;
+type ClickableObject = {
+  imgs: Array<{ img: ImageBitmap; zIndex: number; loc: Point; stretchedWidth?: number }>;
   start: Point;
   end: Point;
-  text: string;
+  func: Function;
 };
 
 const zIndexes = {
@@ -107,6 +108,7 @@ const game = (): Game => {
       ySize: 20,
     },
     updateSpeed: 16,
+    appearingTextSpeed: 0.3,
   };
   const sprites = {
     model: modelSprites(),
@@ -117,11 +119,13 @@ const game = (): Game => {
     new Board(_gameConfig.boardConfig.xSize, _gameConfig.boardConfig.ySize),
   ];
   // Start: Items Initialized After Asset Load
+  const clickableObjects: Array<ClickableObject> = [];
   const draggableObjects: Array<DraggableObject> = [];
   let currentDraggedObject: DraggableObject | undefined;
   const highlightedTiles: Array<{ loc: Point; valid: boolean }> = [];
   const textToDisplay: TextDisplayArray = [];
   const appearingTextToDisplay: TextDisplayArray = [];
+  let appearingTextToDisplayProgressLast: number;
   let appearingTextToDisplayProgress: number;
   const _gameInfo: GameInfo = {
     state: "initializing",
@@ -167,6 +171,8 @@ const game = (): Game => {
   };
   const currentScene = sceneBuilder();
   // End: Items Initialized After Asset Load
+
+  //CONFIG AND GAMESTATE
   function getGameConfig(): GameConfig {
     return _gameConfig;
   }
@@ -182,29 +188,30 @@ const game = (): Game => {
   }
   function setupState(): void {
     appearingTextToDisplayProgress = 0;
+    appearingTextToDisplayProgressLast = -1;
     switch (_gameInfo.state) {
       case "settingPieces": {
         currentScene.flushAll();
+        createButton("green", "CONFIRM", handleConfirmButton, new Point(5, 84));
+        createButton("red", "RESET", handleResetButton, new Point(5, 102));
+        createButton("red", "TESTWORDSA", handleResetButton, new Point(5, 120));
         transformTextToDisplayableFormat(
           appearingTextToDisplay,
-          "Drag and Drop Your Ships Into Your Desired Layout ~~Click Confirm When Complete",
+          "Drag and Drop Your Ships Into Your Desired Layout. ~Click Confirm When Complete or reset to restart.".toUpperCase(),
           new Point(
             _gameInfo.canvas.views.drawer.sections[0].start.x + 5,
             _gameInfo.canvas.views.drawer.sections[0].start.y + 5
           ),
           new Point(
-            _gameInfo.canvas.views.drawer.sections[0].end.x - 5,
+            _gameInfo.canvas.views.drawer.sections[0].end.x + 5,
             _gameInfo.canvas.views.drawer.sections[0].end.y - 5
           )
         );
-        // Tile Designations
         addTileDesignationsToScene(currentScene);
-        // Tiles
         addFriendlyBoardToScene(currentScene, _boards[_gameInfo.playerTurn]);
-        // Static Text
         addTextToScene(currentScene);
-
         addAppearingTextToScene(currentScene);
+        addClickableObjectsToScene(currentScene);
       }
     }
   }
@@ -267,52 +274,7 @@ const game = (): Game => {
     }
     _gameInfo.canvas.scale = canvasData.width / trueSize.width;
   }
-  function getScene(): Scene {
-    switch (_gameInfo.state) {
-      case "settingPieces": {
-        currentScene.flushZIndex(zIndexes.reticule, zIndexes.draggableItems, zIndexes.highlightTiles);
-        addHighlightedTitlesToScene(currentScene);
-        addDraggableObjectsToScene(currentScene);
-        addAppearingTextToScene(currentScene);
-        // Reticule
-        if (_gameInfo.mouse.isOnScreen) {
-          if (_gameInfo.mouse.isHoldingDraggable) {
-            currentScene.addImgToScene(
-              zIndexes.reticule,
-              sprites.model.reticule[2],
-              new Point(_gameInfo.mouse.currentLoc.x - 4, _gameInfo.mouse.currentLoc.y - 4)
-            );
-          } else if (_gameInfo.mouse.isHoveringOverDraggable) {
-            currentScene.addImgToScene(
-              zIndexes.reticule,
-              sprites.model.reticule[1],
-              new Point(_gameInfo.mouse.currentLoc.x - 4, _gameInfo.mouse.currentLoc.y)
-            );
-          } else {
-            currentScene.addImgToScene(
-              zIndexes.reticule,
-              sprites.model.reticule[0],
-              new Point(_gameInfo.mouse.currentLoc.x - 8, _gameInfo.mouse.currentLoc.y - 8)
-            );
-          }
-        }
-        break;
-      }
-      case "turnReview": {
-        //
-        break;
-      }
-      case "attack": {
-        //
-        break;
-      }
-      default: {
-        //
-      }
-    }
-    return currentScene.getScene();
-  }
-  function assetsAreLoaded(): boolean {
+  function areAssetsLoaded(): boolean {
     return sprites.model.loaded && sprites.text.loaded;
   }
   function initializeDraggableObjects(): void {
@@ -349,34 +311,75 @@ const game = (): Game => {
       });
     });
   }
-  function resetDraggableObjectPositions(): void {
-    if (draggableObjects.length > 0) {
-      const ships: Array<{ name: ShipType; length: number }> = [
-        { name: "carrier", length: 5 },
-        { name: "battleship", length: 4 },
-        { name: "cruiser", length: 3 },
-        { name: "submarine", length: 3 },
-        { name: "destroyer", length: 2 },
-      ];
-      const [section1, section2] = _gameInfo.canvas.views.drawer.sections.slice(1, 3);
-      ships.forEach((ship, i) => {
-        const drgObj1 = draggableObjects[i * 2];
-        const drgObj2 = draggableObjects[i * 2 + 1];
-        drgObj1.start = new Point(section1.start.x + 20, section1.start.y + 20 + i * 16);
-        drgObj1.end = new Point(section1.start.x + 20 + 16 * ship.length, section1.start.y + 20 + 16 + i * 16);
-        drgObj1.defaultStart = new Point(section1.start.x + 20, section1.start.y + 20 + i * 16);
-        drgObj1.defaultEnd = new Point(section1.start.x + 20 + 16 * ship.length, section1.start.y + 20 + 16 + i * 16);
-        drgObj2.start = new Point(section2.start.x + 20 + i * 16, section2.start.y + 20);
-        drgObj2.end = new Point(section2.start.x + 20 + 16 + i * 16, section2.start.y + 20 + 16 * ship.length);
-        drgObj2.defaultStart = new Point(section2.start.x + 20 + i * 16, section2.start.y + 20);
-        drgObj2.defaultEnd = new Point(section2.start.x + 20 + 16 + i * 16, section2.start.y + 20 + 16 * ship.length);
+  // function initalizeClickableObjects(): void {
+  //   clickableObjects.push({
+  //     imgs: [
+  //       { img: sprites.model.buttonTiles.green[0], zIndex: zIndexes.background, loc: new Point(0, 0) },
+  //       { img: sprites.model.buttonTiles.green[1], zIndex: zIndexes.background, loc: new Point(1, 0) },
+  //       { img: sprites.model.buttonTiles.green[2], zIndex: zIndexes.background, loc: new Point(2, 0) },
+  //       {
+  //         img: sprites.model.buttonTiles.green[3],
+  //         zIndex: zIndexes.background,
+  //         loc: new Point(3, 0),
+  //         stretchedWidth: 64,
+  //       },
+  //       { img: sprites.model.buttonTiles.green[4], zIndex: zIndexes.background, loc: new Point(64, 0) },
+  //       { img: sprites.model.buttonTiles.green[5], zIndex: zIndexes.background, loc: new Point(67, 0) },
+  //       { img: sprites.model.buttonTiles.green[6], zIndex: zIndexes.background, loc: new Point(68, 0) },
+  //       { img: sprites.text.C, zIndex: zIndexes.text, loc: new Point(4, 4) },
+  //       { img: sprites.text.O, zIndex: zIndexes.text, loc: new Point(13, 4) },
+  //       { img: sprites.text.N, zIndex: zIndexes.text, loc: new Point(22, 4) },
+  //       { img: sprites.text.F, zIndex: zIndexes.text, loc: new Point(31, 4) },
+  //       { img: sprites.text.I, zIndex: zIndexes.text, loc: new Point(40, 4) },
+  //       { img: sprites.text.R, zIndex: zIndexes.text, loc: new Point(49, 4) },
+  //       { img: sprites.text.M, zIndex: zIndexes.text, loc: new Point(58, 4) },
+  //     ],
+  //     start: new Point(5, 90),
+  //     end: new Point(72, 16),
+  //     func: handleConfirmButton,
+  //   });
+  // }
+  function createButton(type: "green" | "red", text: string, func: Function, loc: Point): void {
+    const wordPixelLength = text.length * 8 + 5;
+    const spritesBackground = type === "green" ? sprites.model.buttonTiles.green : sprites.model.buttonTiles.red;
+    const imgs: Array<{ img: ImageBitmap; zIndex: number; loc: Point; stretchedWidth?: number }> = [];
+    imgs.push(
+      { img: spritesBackground[0], zIndex: zIndexes.background, loc: new Point(0, 0) },
+      { img: spritesBackground[1], zIndex: zIndexes.background, loc: new Point(1, 0) },
+      { img: spritesBackground[2], zIndex: zIndexes.background, loc: new Point(2, 0) },
+      { img: spritesBackground[3], zIndex: zIndexes.background, loc: new Point(3, 0), stretchedWidth: wordPixelLength },
+      { img: spritesBackground[4], zIndex: zIndexes.background, loc: new Point(3 + wordPixelLength, 0) },
+      { img: spritesBackground[5], zIndex: zIndexes.background, loc: new Point(4 + wordPixelLength, 0) },
+      { img: spritesBackground[6], zIndex: zIndexes.background, loc: new Point(5 + wordPixelLength, 0) }
+    );
+    text.split("").forEach((char, i) => {
+      imgs.push({
+        img: sprites.text[char as validTextSpriteAccessor],
+        zIndex: zIndexes.text,
+        loc: new Point(3 + i * 9, 4),
       });
-    }
-  }
-  function resetDraggableObjectVisibility(): void {
-    draggableObjects.forEach((drgObj) => {
-      drgObj.visible = true;
     });
+    clickableObjects.push({
+      imgs,
+      start: loc,
+      end: new Point(loc.x + 6 + wordPixelLength, 16),
+      func,
+    });
+  }
+  function initializeValuesAfterAssetsLoaded(): void {
+    initializeDraggableObjects();
+  }
+
+  //INTERACTIVITY
+  function handleConfirmButton() {
+    //!
+    console.log("clicked confirm!");
+  }
+  function handleCancelButton() {
+    //!
+  }
+  function handleResetButton() {
+    //!
   }
   function handleMouseDown(canvasData: DOMRect, mouseClickLocation: Point): void {
     const scale = _gameInfo.canvas.scale;
@@ -614,6 +617,7 @@ const game = (): Game => {
       trueMouseLoc.y < _gameInfo.canvas.views.main.boardPosition.end.y
     );
   }
+  //CANVAS FUNCTIONS
   function getTileAtLocation(trueMouseLoc: Point): Point {
     return new Point(
       Math.floor((trueMouseLoc.x - _gameInfo.canvas.views.main.boardPosition.start.x - 16) / 16),
@@ -633,7 +637,7 @@ const game = (): Game => {
       for (const char of wordArr) {
         if (char === "~") {
           x = start.x;
-          y += 9;
+          y += 14;
         } else {
           displayArray.push({
             loc: new Point(x, y),
@@ -644,6 +648,53 @@ const game = (): Game => {
       }
       x += 4;
     }
+  }
+
+  //SCENE FUNCTIONS
+  function getScene(): Scene {
+    switch (_gameInfo.state) {
+      case "settingPieces": {
+        currentScene.flushZIndex(zIndexes.reticule, zIndexes.draggableItems, zIndexes.highlightTiles);
+        addHighlightedTitlesToScene(currentScene);
+        addDraggableObjectsToScene(currentScene);
+        addAppearingTextToScene(currentScene);
+        // Reticule
+        if (_gameInfo.mouse.isOnScreen) {
+          if (_gameInfo.mouse.isHoldingDraggable) {
+            currentScene.addImgToScene(
+              zIndexes.reticule,
+              sprites.model.reticule[2],
+              new Point(_gameInfo.mouse.currentLoc.x - 4, _gameInfo.mouse.currentLoc.y - 4)
+            );
+          } else if (_gameInfo.mouse.isHoveringOverDraggable) {
+            currentScene.addImgToScene(
+              zIndexes.reticule,
+              sprites.model.reticule[1],
+              new Point(_gameInfo.mouse.currentLoc.x - 4, _gameInfo.mouse.currentLoc.y)
+            );
+          } else {
+            currentScene.addImgToScene(
+              zIndexes.reticule,
+              sprites.model.reticule[0],
+              new Point(_gameInfo.mouse.currentLoc.x - 8, _gameInfo.mouse.currentLoc.y - 8)
+            );
+          }
+        }
+        break;
+      }
+      case "turnReview": {
+        //
+        break;
+      }
+      case "attack": {
+        //
+        break;
+      }
+      default: {
+        //
+      }
+    }
+    return currentScene.getScene();
   }
   function addTileDesignationsToScene(scene: SceneBuilder): void {
     const { main } = _gameInfo.canvas.views;
@@ -764,10 +815,56 @@ const game = (): Game => {
   }
   function addAppearingTextToScene(scene: SceneBuilder): void {
     if (appearingTextToDisplayProgress < appearingTextToDisplay.length) {
-      const { img, loc } = appearingTextToDisplay[appearingTextToDisplayProgress];
-      scene.addImgToScene(zIndexes.appearingText, img, loc);
-      appearingTextToDisplayProgress++;
+      if (Math.floor(appearingTextToDisplayProgressLast) !== Math.floor(appearingTextToDisplayProgress)) {
+        const { img, loc } = appearingTextToDisplay[Math.floor(appearingTextToDisplayProgress)];
+        scene.addImgToScene(zIndexes.appearingText, img, loc);
+      }
+      appearingTextToDisplayProgressLast = appearingTextToDisplayProgress;
+      appearingTextToDisplayProgress += _gameConfig.appearingTextSpeed;
     }
+  }
+  function addClickableObjectsToScene(scene: SceneBuilder): void {
+    console.log(clickableObjects);
+    for (const obj of clickableObjects) {
+      for (const img of obj.imgs) {
+        if (img.stretchedWidth) {
+          for (let i = 0; i < img.stretchedWidth; i++) {
+            scene.addImgToScene(img.zIndex, img.img, new Point(obj.start.x + img.loc.x + i, obj.start.y + img.loc.y));
+          }
+        } else {
+          scene.addImgToScene(img.zIndex, img.img, new Point(obj.start.x + img.loc.x, obj.start.y + img.loc.y));
+        }
+      }
+    }
+  }
+  function resetDraggableObjectPositions(): void {
+    if (draggableObjects.length > 0) {
+      const ships: Array<{ name: ShipType; length: number }> = [
+        { name: "carrier", length: 5 },
+        { name: "battleship", length: 4 },
+        { name: "cruiser", length: 3 },
+        { name: "submarine", length: 3 },
+        { name: "destroyer", length: 2 },
+      ];
+      const [section1, section2] = _gameInfo.canvas.views.drawer.sections.slice(1, 3);
+      ships.forEach((ship, i) => {
+        const drgObj1 = draggableObjects[i * 2];
+        const drgObj2 = draggableObjects[i * 2 + 1];
+        drgObj1.start = new Point(section1.start.x + 20, section1.start.y + 20 + i * 16);
+        drgObj1.end = new Point(section1.start.x + 20 + 16 * ship.length, section1.start.y + 20 + 16 + i * 16);
+        drgObj1.defaultStart = new Point(section1.start.x + 20, section1.start.y + 20 + i * 16);
+        drgObj1.defaultEnd = new Point(section1.start.x + 20 + 16 * ship.length, section1.start.y + 20 + 16 + i * 16);
+        drgObj2.start = new Point(section2.start.x + 20 + i * 16, section2.start.y + 20);
+        drgObj2.end = new Point(section2.start.x + 20 + 16 + i * 16, section2.start.y + 20 + 16 * ship.length);
+        drgObj2.defaultStart = new Point(section2.start.x + 20 + i * 16, section2.start.y + 20);
+        drgObj2.defaultEnd = new Point(section2.start.x + 20 + 16 + i * 16, section2.start.y + 20 + 16 * ship.length);
+      });
+    }
+  }
+  function resetDraggableObjectVisibility(): void {
+    draggableObjects.forEach((drgObj) => {
+      drgObj.visible = true;
+    });
   }
   return {
     getGameConfig,
@@ -775,13 +872,13 @@ const game = (): Game => {
     getState,
     setState,
     updateViewSizes,
-    assetsAreLoaded,
+    areAssetsLoaded,
     getScene,
     handleMouseDown,
     handleMouseUp,
     handleMouseMove,
     handleMouseLeave,
-    initializeDraggableObjects,
+    initializeValuesAfterAssetsLoaded,
   };
 };
 

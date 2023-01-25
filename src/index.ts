@@ -26,8 +26,8 @@ function update(timestamp: number) {
     prevUpdate = timestamp;
     switch (game.getState()) {
       case "initializing": {
-        if (game.assetsAreLoaded()) {
-          game.initializeDraggableObjects();
+        if (game.areAssetsLoaded()) {
+          game.initializeValuesAfterAssetsLoaded();
           game.setState("settingPieces");
           // game.setState("turnReview");
           // game.setState("attack");
