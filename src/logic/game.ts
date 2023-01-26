@@ -41,6 +41,7 @@ type MouseConfig = {
   currentLoc: Point;
   isHoveringOverDraggable: boolean;
   isHoldingDraggable: boolean;
+  isHoveringOverClickable: boolean;
   holdingDraggableOffsets: Point;
   clicked: {
     bool: boolean;
@@ -87,7 +88,7 @@ type ClickableObject = {
   imgs: Array<{ img: ImageBitmap; zIndex: number; loc: Point; stretchedWidth?: number }>;
   start: Point;
   end: Point;
-  func: Function;
+  func: () => void;
 };
 
 const zIndexes = {
@@ -132,6 +133,7 @@ const game = (): Game => {
     playerTurn: 0,
     mouse: {
       isOnScreen: false,
+      isHoveringOverClickable: false,
       isHoveringOverDraggable: false,
       isHoldingDraggable: false,
       holdingDraggableOffsets: new Point(0, 0),
@@ -192,9 +194,8 @@ const game = (): Game => {
     switch (_gameInfo.state) {
       case "settingPieces": {
         currentScene.flushAll();
-        createButton("green", "CONFIRM", handleConfirmButton, new Point(5, 84));
-        createButton("red", "RESET", handleResetButton, new Point(5, 102));
-        createButton("red", "TESTWORDSA", handleResetButton, new Point(5, 120));
+        createButton("green", "CONFIRM", handleConfirmButton, new Point(5, 90));
+        createButton("red", "RESET", handleResetButton, new Point(70, 90));
         transformTextToDisplayableFormat(
           appearingTextToDisplay,
           "Drag and Drop Your Ships Into Your Desired Layout. ~Click Confirm When Complete or reset to restart.".toUpperCase(),
@@ -311,58 +312,35 @@ const game = (): Game => {
       });
     });
   }
-  // function initalizeClickableObjects(): void {
-  //   clickableObjects.push({
-  //     imgs: [
-  //       { img: sprites.model.buttonTiles.green[0], zIndex: zIndexes.background, loc: new Point(0, 0) },
-  //       { img: sprites.model.buttonTiles.green[1], zIndex: zIndexes.background, loc: new Point(1, 0) },
-  //       { img: sprites.model.buttonTiles.green[2], zIndex: zIndexes.background, loc: new Point(2, 0) },
-  //       {
-  //         img: sprites.model.buttonTiles.green[3],
-  //         zIndex: zIndexes.background,
-  //         loc: new Point(3, 0),
-  //         stretchedWidth: 64,
-  //       },
-  //       { img: sprites.model.buttonTiles.green[4], zIndex: zIndexes.background, loc: new Point(64, 0) },
-  //       { img: sprites.model.buttonTiles.green[5], zIndex: zIndexes.background, loc: new Point(67, 0) },
-  //       { img: sprites.model.buttonTiles.green[6], zIndex: zIndexes.background, loc: new Point(68, 0) },
-  //       { img: sprites.text.C, zIndex: zIndexes.text, loc: new Point(4, 4) },
-  //       { img: sprites.text.O, zIndex: zIndexes.text, loc: new Point(13, 4) },
-  //       { img: sprites.text.N, zIndex: zIndexes.text, loc: new Point(22, 4) },
-  //       { img: sprites.text.F, zIndex: zIndexes.text, loc: new Point(31, 4) },
-  //       { img: sprites.text.I, zIndex: zIndexes.text, loc: new Point(40, 4) },
-  //       { img: sprites.text.R, zIndex: zIndexes.text, loc: new Point(49, 4) },
-  //       { img: sprites.text.M, zIndex: zIndexes.text, loc: new Point(58, 4) },
-  //     ],
-  //     start: new Point(5, 90),
-  //     end: new Point(72, 16),
-  //     func: handleConfirmButton,
-  //   });
-  // }
-  function createButton(type: "green" | "red", text: string, func: Function, loc: Point): void {
-    const wordPixelLength = text.length * 8 + 5;
+  function createButton(type: "green" | "red", text: string, func: () => void, loc: Point): void {
+    const wordPixelLength = text.length * 8;
     const spritesBackground = type === "green" ? sprites.model.buttonTiles.green : sprites.model.buttonTiles.red;
     const imgs: Array<{ img: ImageBitmap; zIndex: number; loc: Point; stretchedWidth?: number }> = [];
     imgs.push(
       { img: spritesBackground[0], zIndex: zIndexes.background, loc: new Point(0, 0) },
       { img: spritesBackground[1], zIndex: zIndexes.background, loc: new Point(1, 0) },
       { img: spritesBackground[2], zIndex: zIndexes.background, loc: new Point(2, 0) },
-      { img: spritesBackground[3], zIndex: zIndexes.background, loc: new Point(3, 0), stretchedWidth: wordPixelLength },
-      { img: spritesBackground[4], zIndex: zIndexes.background, loc: new Point(3 + wordPixelLength, 0) },
-      { img: spritesBackground[5], zIndex: zIndexes.background, loc: new Point(4 + wordPixelLength, 0) },
-      { img: spritesBackground[6], zIndex: zIndexes.background, loc: new Point(5 + wordPixelLength, 0) }
+      {
+        img: spritesBackground[3],
+        zIndex: zIndexes.background,
+        loc: new Point(3, 0),
+        stretchedWidth: wordPixelLength - 1,
+      },
+      { img: spritesBackground[4], zIndex: zIndexes.background, loc: new Point(2 + wordPixelLength, 0) },
+      { img: spritesBackground[5], zIndex: zIndexes.background, loc: new Point(3 + wordPixelLength, 0) },
+      { img: spritesBackground[6], zIndex: zIndexes.background, loc: new Point(4 + wordPixelLength, 0) }
     );
     text.split("").forEach((char, i) => {
       imgs.push({
         img: sprites.text[char as validTextSpriteAccessor],
         zIndex: zIndexes.text,
-        loc: new Point(3 + i * 9, 4),
+        loc: new Point(3 + i * 8, 4),
       });
     });
     clickableObjects.push({
       imgs,
       start: loc,
-      end: new Point(loc.x + 6 + wordPixelLength, 16),
+      end: new Point(loc.x + 6 + wordPixelLength, loc.y + 16),
       func,
     });
   }
@@ -379,16 +357,20 @@ const game = (): Game => {
     //!
   }
   function handleResetButton() {
-    //!
+    _boards[_gameInfo.playerTurn].reset();
+    currentScene.flushZIndex(zIndexes.ships);
+    resetDraggableObjectPositions();
+    resetDraggableObjectVisibility();
   }
   function handleMouseDown(canvasData: DOMRect, mouseClickLocation: Point): void {
     const scale = _gameInfo.canvas.scale;
     const trueX = (mouseClickLocation.x - canvasData.left) / scale;
     const trueY = (mouseClickLocation.y - canvasData.top) / scale;
+    const clickedPoint = new Point(trueX, trueY);
     switch (_gameInfo.state) {
       case "settingPieces": {
         if (_gameInfo.mouse.isHoveringOverDraggable) {
-          currentDraggedObject = isHoveringOverDraggable(new Point(trueX, trueY)).draggableObj;
+          currentDraggedObject = isHoveringOverDraggable(clickedPoint).draggableObj;
           if (currentDraggedObject) {
             _gameInfo.mouse.holdingDraggableOffsets = new Point(
               trueX - currentDraggedObject.start.x,
@@ -397,6 +379,11 @@ const game = (): Game => {
           }
           _gameInfo.mouse.isHoveringOverDraggable = false;
           _gameInfo.mouse.isHoldingDraggable = true;
+        } else if (_gameInfo.mouse.isHoveringOverClickable) {
+          const clickedObj = isHoveringOverClickable(clickedPoint).clickableObj;
+          if (clickedObj) {
+            clickedObj.func();
+          }
         }
         break;
       }
@@ -571,12 +558,11 @@ const game = (): Game => {
             }
           }
         } else {
-          const results = isHoveringOverDraggable(new Point(trueX, trueY));
-          if (results.found) {
-            mouse.isHoveringOverDraggable = true;
-          } else {
-            mouse.isHoveringOverDraggable = false;
-          }
+          const checkPoint = new Point(trueX, trueY);
+          const hoverResults = isHoveringOverDraggable(checkPoint);
+          const clickableResults = isHoveringOverClickable(checkPoint);
+          mouse.isHoveringOverClickable = clickableResults.found;
+          mouse.isHoveringOverDraggable = hoverResults.found;
         }
         break;
       }
@@ -608,6 +594,22 @@ const game = (): Game => {
       i++;
     }
     return drgObj && drgObj.visible ? { found: true, draggableObj: drgObj } : { found: false };
+  }
+  function isHoveringOverClickable(trueMouseLoc: Point): {
+    found: boolean;
+    clickableObj?: ClickableObject;
+  } {
+    let found = false;
+    let i = 0;
+    let clkObj;
+    while (!found && i < clickableObjects.length) {
+      if (trueMouseLoc.isBetween(clickableObjects[i].start, clickableObjects[i].end)) {
+        found = true;
+        clkObj = clickableObjects[i];
+      }
+      i++;
+    }
+    return clkObj ? { found, clickableObj: clkObj } : { found };
   }
   function isWithinBoardTiles(trueMouseLoc: Point): boolean {
     return (
@@ -666,7 +668,7 @@ const game = (): Game => {
               sprites.model.reticule[2],
               new Point(_gameInfo.mouse.currentLoc.x - 4, _gameInfo.mouse.currentLoc.y - 4)
             );
-          } else if (_gameInfo.mouse.isHoveringOverDraggable) {
+          } else if (_gameInfo.mouse.isHoveringOverDraggable || _gameInfo.mouse.isHoveringOverClickable) {
             currentScene.addImgToScene(
               zIndexes.reticule,
               sprites.model.reticule[1],
@@ -824,7 +826,6 @@ const game = (): Game => {
     }
   }
   function addClickableObjectsToScene(scene: SceneBuilder): void {
-    console.log(clickableObjects);
     for (const obj of clickableObjects) {
       for (const img of obj.imgs) {
         if (img.stretchedWidth) {
