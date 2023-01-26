@@ -21,8 +21,8 @@ const canvas = () => {
   function _updateCanvasData(): void {
     let greater;
     let lesser;
-    const windowInnerHeight = window.innerHeight - 36;
-    const windowInnerWidth = window.innerWidth - 36;
+    const windowInnerHeight = window.innerHeight - 16;
+    const windowInnerWidth = window.innerWidth - 16;
 
     if (windowInnerHeight > windowInnerWidth) {
       greater = windowInnerHeight;

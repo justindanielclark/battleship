@@ -5,12 +5,12 @@ import Renderer from "./logic/renderer";
 import Point from "./logic/data_storage/Point";
 
 const { body } = document;
-body.classList.add("bg-stone-800", "flex", "justify-center", "items-center", "min-h-screen", "max-h-screen", "p-4");
+body.classList.add("bg-stone-800", "flex", "justify-center", "items-center", "min-h-screen", "max-h-screen");
 
 const game = Game();
 const canvas = Canvas();
 const canvasEL = canvas.getHTMLCanvasElement();
-canvasEL.classList.add("cursor-none", "border-8", "border-amber-500");
+canvasEL.classList.add("cursor-none", "border-4", "rounded-lg", "border-amber-300");
 body.append(canvas.getHTMLCanvasElement());
 canvas.update();
 game.updateViewSizes(canvas.getCanvasData());
