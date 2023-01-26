@@ -27,12 +27,7 @@ class Board {
     }
   }
   #isWithinValidBounds(point: Point): boolean {
-    return !(
-      point.x < 0 ||
-      point.x >= this._xSize ||
-      point.y < 0 ||
-      point.y >= this._ySize
-    );
+    return !(point.x < 0 || point.x >= this._xSize || point.y < 0 || point.y >= this._ySize);
   }
   getTargeted(point: Point): boolean {
     if (this.#isWithinValidBounds(point)) {
@@ -90,6 +85,9 @@ class Board {
       }
     });
     return !(deadShips === this._fleet.length);
+  }
+  getFleet(): Array<Ship> {
+    return this._fleet;
   }
   addShip(startingLoc: Point, ship: Ship): void {
     const point = startingLoc.deepCopy();
