@@ -642,7 +642,7 @@ const game = (): Game => {
           y += 14;
         } else {
           displayArray.push({
-            loc: new Point(x, y),
+            loc: new Point(char === "." ? x - 3 : x, y),
             img: sprites.text[char as validTextSpriteAccessor],
           });
           x += 8;
