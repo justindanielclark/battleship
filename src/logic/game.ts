@@ -53,16 +53,10 @@ type GameConfig = {
   updateSpeed: number;
   appearingTextSpeed: number;
 };
-type GameInfo = {
-  playerTurn: 0 | 1;
-  state: GameState;
-  mouse: MouseConfig;
-  canvas: CanvasConfig;
-};
 type TextDisplayArray = Array<{ loc: Point; img: ImageBitmap }>;
 type Game = {
   getGameConfig(): GameConfig;
-  getGameInfo(): GameInfo;
+  getCanvasConfig(): CanvasConfig;
   getScene(): Scene;
   getState(): GameState;
   areAssetsLoaded(): boolean;
@@ -90,7 +84,6 @@ type ClickableObject = {
   end: Point;
   func: () => void;
 };
-
 const zIndexes = {
   background: 0,
   tiles: 1,
@@ -99,7 +92,8 @@ const zIndexes = {
   appearingText: 4,
   ships: 5,
   draggableItems: 6,
-  reticule: 7,
+  transitionTiles: 7,
+  reticule: 8,
 };
 
 const game = (): Game => {
@@ -128,46 +122,49 @@ const game = (): Game => {
   const appearingTextToDisplay: TextDisplayArray = [];
   let appearingTextToDisplayProgressLast: number;
   let appearingTextToDisplayProgress: number;
-  const _gameInfo: GameInfo = {
-    state: "initializing",
-    playerTurn: 0,
-    mouse: {
-      isOnScreen: false,
-      isHoveringOverClickable: false,
-      isHoveringOverDraggable: false,
-      isHoldingDraggable: false,
-      holdingDraggableOffsets: new Point(0, 0),
-      currentLoc: new Point(0, 0),
-      clicked: {
-        bool: false,
-        loc: new Point(0, 0),
-      },
+  let transitioning = false;
+  let transitioningProgress = 0;
+  let transitioningProgressLast = -1;
+  let isTransitioningForward: true;
+  let state: GameState = "initializing";
+  let nextState: GameState;
+  let playerTurn: 0 | 1 = 0;
+  const mouse: MouseConfig = {
+    isOnScreen: false,
+    isHoveringOverClickable: false,
+    isHoveringOverDraggable: false,
+    isHoldingDraggable: false,
+    holdingDraggableOffsets: new Point(0, 0),
+    currentLoc: new Point(0, 0),
+    clicked: {
+      bool: false,
+      loc: new Point(0, 0),
     },
-    canvas: {
-      orientation: "uninitialized",
-      scale: 0,
-      trueSize: {
-        width: 0,
-        height: 0,
+  };
+  const canvas: CanvasConfig = {
+    orientation: "uninitialized",
+    scale: 0,
+    trueSize: {
+      width: 0,
+      height: 0,
+    },
+    views: {
+      main: {
+        start: new Point(0, 0),
+        end: new Point(0, 0),
+        boardPosition: {
+          start: new Point(0, 0),
+          end: new Point(0, 0),
+        },
       },
-      views: {
-        main: {
-          start: new Point(0, 0),
-          end: new Point(0, 0),
-          boardPosition: {
-            start: new Point(0, 0),
-            end: new Point(0, 0),
-          },
-        },
-        drawer: {
-          start: new Point(0, 0),
-          end: new Point(0, 0),
-          sections: [
-            { start: new Point(0, 0), end: new Point(0, 0) },
-            { start: new Point(0, 0), end: new Point(0, 0) },
-            { start: new Point(0, 0), end: new Point(0, 0) },
-          ],
-        },
+      drawer: {
+        start: new Point(0, 0),
+        end: new Point(0, 0),
+        sections: [
+          { start: new Point(0, 0), end: new Point(0, 0) },
+          { start: new Point(0, 0), end: new Point(0, 0) },
+          { start: new Point(0, 0), end: new Point(0, 0) },
+        ],
       },
     },
   };
@@ -178,20 +175,19 @@ const game = (): Game => {
   function getGameConfig(): GameConfig {
     return _gameConfig;
   }
-  function getGameInfo(): GameInfo {
-    return _gameInfo;
+  function getCanvasConfig(): CanvasConfig {
+    return canvas;
   }
   function getState(): GameState {
-    return _gameInfo.state;
+    return state;
   }
   function setState(gameState: GameState): void {
-    _gameInfo.state = gameState;
+    state = gameState;
     setupState();
   }
   function setupState(): void {
-    appearingTextToDisplayProgress = 0;
-    appearingTextToDisplayProgressLast = -1;
-    switch (_gameInfo.state) {
+    resetAppearingText();
+    switch (state) {
       case "settingPieces": {
         currentScene.flushAll();
         createButton("green", "CONFIRM", handleConfirmButton, new Point(5, 90));
@@ -199,17 +195,11 @@ const game = (): Game => {
         transformTextToDisplayableFormat(
           appearingTextToDisplay,
           "Drag and Drop Your Ships Into Your Desired Layout. ~Click Confirm When Complete or reset to restart.".toUpperCase(),
-          new Point(
-            _gameInfo.canvas.views.drawer.sections[0].start.x + 5,
-            _gameInfo.canvas.views.drawer.sections[0].start.y + 5
-          ),
-          new Point(
-            _gameInfo.canvas.views.drawer.sections[0].end.x + 5,
-            _gameInfo.canvas.views.drawer.sections[0].end.y - 5
-          )
+          new Point(canvas.views.drawer.sections[0].start.x + 5, canvas.views.drawer.sections[0].start.y + 5),
+          new Point(canvas.views.drawer.sections[0].end.x + 5, canvas.views.drawer.sections[0].end.y - 5)
         );
         addTileDesignationsToScene(currentScene);
-        addFriendlyBoardToScene(currentScene, _boards[_gameInfo.playerTurn]);
+        addFriendlyBoardToScene(currentScene, _boards[playerTurn]);
         addTextToScene(currentScene);
         addAppearingTextToScene(currentScene);
         addClickableObjectsToScene(currentScene);
@@ -217,9 +207,8 @@ const game = (): Game => {
     }
   }
   function updateViewSizes(canvasData: CanvasData): void {
-    const canvas = _gameInfo.canvas;
-    const trueSize = _gameInfo.canvas.trueSize;
-    const { main, drawer } = _gameInfo.canvas.views;
+    const trueSize = canvas.trueSize;
+    const { main, drawer } = canvas.views;
     const [section1, section2, section3] = drawer.sections;
     const boardPosition = main.boardPosition;
     if (canvas.orientation !== canvasData.orientation) {
@@ -247,7 +236,7 @@ const game = (): Game => {
         section2.end = new Point(drawer.end.x, (drawer.end.y * 2) / 3);
         section3.start = new Point(drawer.start.x, (drawer.end.y / 3) * 2);
         section3.end = new Point(drawer.end.x, drawer.end.y);
-      } else if (_gameInfo.canvas.orientation === "portrait") {
+      } else if (canvas.orientation === "portrait") {
         trueSize.width = 360;
         trueSize.height = 480;
         drawer.start.x = 0;
@@ -273,7 +262,7 @@ const game = (): Game => {
       }
       resetDraggableObjectPositions();
     }
-    _gameInfo.canvas.scale = canvasData.width / trueSize.width;
+    canvas.scale = canvasData.width / trueSize.width;
   }
   function areAssetsLoaded(): boolean {
     return sprites.model.loaded && sprites.text.loaded;
@@ -286,7 +275,7 @@ const game = (): Game => {
       { name: "submarine", length: 3 },
       { name: "destroyer", length: 2 },
     ];
-    const [section1, section2] = _gameInfo.canvas.views.drawer.sections.slice(1, 3);
+    const [section1, section2] = canvas.views.drawer.sections.slice(1, 3);
     ships.forEach((ship, i) => {
       //HORIZONTAL
       draggableObjects.push({
@@ -350,36 +339,60 @@ const game = (): Game => {
 
   //INTERACTIVITY
   function handleConfirmButton() {
-    //!
-    console.log("clicked confirm!");
+    if (!transitioning) {
+      switch (state) {
+        case "settingPieces": {
+          if (_boards[playerTurn].getFleet().length === 5) {
+            transitioning = true;
+            resetTransitioning();
+            console.log("COMPLETE");
+          } else {
+            currentScene.flushZIndex(zIndexes.appearingText);
+            resetAppearingText();
+            transformTextToDisplayableFormat(
+              appearingTextToDisplay,
+              "YOU ARE REQUIRED TO PLACE ALL SHIPS BEFORE PRESSING CONFIRM.",
+              new Point(canvas.views.drawer.sections[0].start.x + 5, canvas.views.drawer.sections[0].start.y + 5),
+              new Point(canvas.views.drawer.sections[0].end.x + 5, canvas.views.drawer.sections[0].end.y - 5)
+            );
+          }
+        }
+      }
+    }
   }
   function handleCancelButton() {
     //!
   }
   function handleResetButton() {
-    _boards[_gameInfo.playerTurn].reset();
-    currentScene.flushZIndex(zIndexes.ships);
-    resetDraggableObjectPositions();
-    resetDraggableObjectVisibility();
+    if (!transitioning) {
+      switch (state) {
+        case "settingPieces": {
+          _boards[playerTurn].reset();
+          currentScene.flushZIndex(zIndexes.ships);
+          resetDraggableObjectPositions();
+          resetDraggableObjectVisibility();
+        }
+      }
+    }
   }
   function handleMouseDown(canvasData: DOMRect, mouseClickLocation: Point): void {
-    const scale = _gameInfo.canvas.scale;
+    const scale = canvas.scale;
     const trueX = (mouseClickLocation.x - canvasData.left) / scale;
     const trueY = (mouseClickLocation.y - canvasData.top) / scale;
     const clickedPoint = new Point(trueX, trueY);
-    switch (_gameInfo.state) {
+    switch (state) {
       case "settingPieces": {
-        if (_gameInfo.mouse.isHoveringOverDraggable) {
+        if (mouse.isHoveringOverDraggable) {
           currentDraggedObject = isHoveringOverDraggable(clickedPoint).draggableObj;
           if (currentDraggedObject) {
-            _gameInfo.mouse.holdingDraggableOffsets = new Point(
+            mouse.holdingDraggableOffsets = new Point(
               trueX - currentDraggedObject.start.x,
               trueY - currentDraggedObject.start.y
             );
           }
-          _gameInfo.mouse.isHoveringOverDraggable = false;
-          _gameInfo.mouse.isHoldingDraggable = true;
-        } else if (_gameInfo.mouse.isHoveringOverClickable) {
+          mouse.isHoveringOverDraggable = false;
+          mouse.isHoldingDraggable = true;
+        } else if (mouse.isHoveringOverClickable) {
           const clickedObj = isHoveringOverClickable(clickedPoint).clickableObj;
           if (clickedObj) {
             clickedObj.func();
@@ -397,11 +410,10 @@ const game = (): Game => {
     }
   }
   function handleMouseUp(canvasData: DOMRect, mouseClickLocation: Point): void {
-    const { mouse } = _gameInfo;
-    const scale = _gameInfo.canvas.scale;
+    const scale = canvas.scale;
     const trueX = (mouseClickLocation.x - canvasData.left) / scale;
     const trueY = (mouseClickLocation.y - canvasData.top) / scale;
-    switch (_gameInfo.state) {
+    switch (state) {
       case "settingPieces": {
         if (mouse.isHoldingDraggable && currentDraggedObject) {
           let orientation: Orientation;
@@ -425,19 +437,16 @@ const game = (): Game => {
           if (startWithinBounds && endWithinBounds) {
             const shipType = currentDraggedObject.name;
             const dropPoint = highlightedTiles[0].loc;
-            const isValid = _boards[_gameInfo.playerTurn].isValidPlacementLocation(
-              dropPoint,
-              new Ship(shipType, orientation)
-            );
+            const isValid = _boards[playerTurn].isValidPlacementLocation(dropPoint, new Ship(shipType, orientation));
             if (isValid) {
-              _boards[_gameInfo.playerTurn].addShip(dropPoint, new Ship(shipType, orientation));
+              _boards[playerTurn].addShip(dropPoint, new Ship(shipType, orientation));
               draggableObjects.forEach((drgObj) => {
                 if (drgObj.name === shipType) {
                   drgObj.visible = false;
                 }
               });
               currentScene.flushZIndex(zIndexes.tiles, zIndexes.ships);
-              addFriendlyBoardToScene(currentScene, _boards[_gameInfo.playerTurn]);
+              addFriendlyBoardToScene(currentScene, _boards[playerTurn]);
             } else {
               currentDraggedObject.start.x = currentDraggedObject.defaultStart.x;
               currentDraggedObject.start.y = currentDraggedObject.defaultStart.y;
@@ -452,11 +461,11 @@ const game = (): Game => {
           }
         }
         if (isHoveringOverDraggable(new Point(trueX, trueY)).found) {
-          _gameInfo.mouse.isHoveringOverDraggable = true;
+          mouse.isHoveringOverDraggable = true;
         } else {
-          _gameInfo.mouse.isHoveringOverDraggable = false;
+          mouse.isHoveringOverDraggable = false;
         }
-        _gameInfo.mouse.isHoldingDraggable = false;
+        mouse.isHoldingDraggable = false;
         highlightedTiles.splice(0, highlightedTiles.length);
         break;
       }
@@ -470,14 +479,13 @@ const game = (): Game => {
     }
   }
   function handleMouseMove(canvasData: DOMRect, mouseMoveLocation: Point): void {
-    const scale = _gameInfo.canvas.scale;
+    const scale = canvas.scale;
     const trueX = (mouseMoveLocation.x - canvasData.left) / scale;
     const trueY = (mouseMoveLocation.y - canvasData.top) / scale;
-    const { mouse } = _gameInfo;
     mouse.isOnScreen = true;
     mouse.currentLoc.x = trueX;
     mouse.currentLoc.y = trueY;
-    switch (_gameInfo.state) {
+    switch (state) {
       case "settingPieces": {
         if (mouse.isHoldingDraggable) {
           if (currentDraggedObject) {
@@ -501,7 +509,7 @@ const game = (): Game => {
             highlightedTiles.length = 0;
             if (startTile && endTile) {
               if (currentDraggedObject.rotation === 0) {
-                const isValid = _boards[_gameInfo.playerTurn].isValidPlacementLocation(
+                const isValid = _boards[playerTurn].isValidPlacementLocation(
                   startTile,
                   new Ship(currentDraggedObject.name, "EW")
                 );
@@ -512,7 +520,7 @@ const game = (): Game => {
                   });
                 }
               } else {
-                const isValid = _boards[_gameInfo.playerTurn].isValidPlacementLocation(
+                const isValid = _boards[playerTurn].isValidPlacementLocation(
                   startTile,
                   new Ship(currentDraggedObject.name, "NS")
                 );
@@ -572,12 +580,12 @@ const game = (): Game => {
     }
   }
   function handleMouseLeave(canvasData: DOMRect, mouseMoveLocation: Point): void {
-    const scale = _gameInfo.canvas.scale;
+    const scale = canvas.scale;
     const trueX = (mouseMoveLocation.x - canvasData.left) / scale;
     const trueY = (mouseMoveLocation.y - canvasData.top) / scale;
-    _gameInfo.mouse.isOnScreen = false;
-    _gameInfo.mouse.currentLoc.x = trueX;
-    _gameInfo.mouse.currentLoc.y = trueY;
+    mouse.isOnScreen = false;
+    mouse.currentLoc.x = trueX;
+    mouse.currentLoc.y = trueY;
   }
   function isHoveringOverDraggable(trueMouseLoc: Point): {
     found: boolean;
@@ -613,17 +621,17 @@ const game = (): Game => {
   }
   function isWithinBoardTiles(trueMouseLoc: Point): boolean {
     return (
-      trueMouseLoc.x >= _gameInfo.canvas.views.main.boardPosition.start.x + 16 &&
-      trueMouseLoc.x < _gameInfo.canvas.views.main.boardPosition.end.x &&
-      trueMouseLoc.y >= _gameInfo.canvas.views.main.boardPosition.start.y + 16 &&
-      trueMouseLoc.y < _gameInfo.canvas.views.main.boardPosition.end.y
+      trueMouseLoc.x >= canvas.views.main.boardPosition.start.x + 16 &&
+      trueMouseLoc.x < canvas.views.main.boardPosition.end.x &&
+      trueMouseLoc.y >= canvas.views.main.boardPosition.start.y + 16 &&
+      trueMouseLoc.y < canvas.views.main.boardPosition.end.y
     );
   }
   //CANVAS FUNCTIONS
   function getTileAtLocation(trueMouseLoc: Point): Point {
     return new Point(
-      Math.floor((trueMouseLoc.x - _gameInfo.canvas.views.main.boardPosition.start.x - 16) / 16),
-      Math.floor((trueMouseLoc.y - _gameInfo.canvas.views.main.boardPosition.start.y - 16) / 16)
+      Math.floor((trueMouseLoc.x - canvas.views.main.boardPosition.start.x - 16) / 16),
+      Math.floor((trueMouseLoc.y - canvas.views.main.boardPosition.start.y - 16) / 16)
     );
   }
   function transformTextToDisplayableFormat(displayArray: TextDisplayArray, text: string, start: Point, end: Point) {
@@ -654,31 +662,31 @@ const game = (): Game => {
 
   //SCENE FUNCTIONS
   function getScene(): Scene {
-    switch (_gameInfo.state) {
+    switch (state) {
       case "settingPieces": {
         currentScene.flushZIndex(zIndexes.reticule, zIndexes.draggableItems, zIndexes.highlightTiles);
         addHighlightedTitlesToScene(currentScene);
         addDraggableObjectsToScene(currentScene);
         addAppearingTextToScene(currentScene);
         // Reticule
-        if (_gameInfo.mouse.isOnScreen) {
-          if (_gameInfo.mouse.isHoldingDraggable) {
+        if (mouse.isOnScreen) {
+          if (mouse.isHoldingDraggable) {
             currentScene.addImgToScene(
               zIndexes.reticule,
               sprites.model.reticule[2],
-              new Point(_gameInfo.mouse.currentLoc.x - 4, _gameInfo.mouse.currentLoc.y - 4)
+              new Point(mouse.currentLoc.x - 4, mouse.currentLoc.y - 4)
             );
-          } else if (_gameInfo.mouse.isHoveringOverDraggable || _gameInfo.mouse.isHoveringOverClickable) {
+          } else if (mouse.isHoveringOverDraggable || mouse.isHoveringOverClickable) {
             currentScene.addImgToScene(
               zIndexes.reticule,
               sprites.model.reticule[1],
-              new Point(_gameInfo.mouse.currentLoc.x - 4, _gameInfo.mouse.currentLoc.y)
+              new Point(mouse.currentLoc.x - 4, mouse.currentLoc.y)
             );
           } else {
             currentScene.addImgToScene(
               zIndexes.reticule,
               sprites.model.reticule[0],
-              new Point(_gameInfo.mouse.currentLoc.x - 8, _gameInfo.mouse.currentLoc.y - 8)
+              new Point(mouse.currentLoc.x - 8, mouse.currentLoc.y - 8)
             );
           }
         }
@@ -699,7 +707,7 @@ const game = (): Game => {
     return currentScene.getScene();
   }
   function addTileDesignationsToScene(scene: SceneBuilder): void {
-    const { main } = _gameInfo.canvas.views;
+    const { main } = canvas.views;
     for (let i = 0; i < _gameConfig.boardConfig.xSize; i++) {
       scene.addImgToScene(
         zIndexes.text,
@@ -731,7 +739,7 @@ const game = (): Game => {
     }
   }
   function addFriendlyBoardToScene(scene: SceneBuilder, board: Board): void {
-    const { main } = _gameInfo.canvas.views;
+    const { main } = canvas.views;
     for (let x = 0; x < _gameConfig.boardConfig.xSize; x++) {
       for (let y = 0; y < _gameConfig.boardConfig.ySize; y++) {
         const searchPoint = new Point(x, y);
@@ -760,7 +768,7 @@ const game = (): Game => {
     }
   }
   function addEnemyBoardToScene(scene: SceneBuilder, board: Board): void {
-    const { main } = _gameInfo.canvas.views;
+    const { main } = canvas.views;
     for (let x = 0; x < _gameConfig.boardConfig.xSize; x++) {
       for (let y = 0; y < _gameConfig.boardConfig.ySize; y++) {
         const searchPoint = new Point(x, y);
@@ -786,7 +794,7 @@ const game = (): Game => {
     }
   }
   function addDraggableObjectsToScene(scene: SceneBuilder): void {
-    const { main } = _gameInfo.canvas.views;
+    const { main } = canvas.views;
     draggableObjects.forEach((obj) => {
       if (obj.visible) {
         scene.addImgToScene(zIndexes.draggableItems, obj.img, obj.start, {
@@ -804,8 +812,8 @@ const game = (): Game => {
           ? sprites.model.radarTiles[(tile.loc.x + tile.loc.y) % 2]
           : sprites.model.damageTiles[(tile.loc.x + tile.loc.y) % 2],
         new Point(
-          16 + _gameInfo.canvas.views.main.boardPosition.start.x + tile.loc.x * 16,
-          16 + _gameInfo.canvas.views.main.boardPosition.start.y + tile.loc.y * 16
+          16 + canvas.views.main.boardPosition.start.x + tile.loc.x * 16,
+          16 + canvas.views.main.boardPosition.start.y + tile.loc.y * 16
         )
       );
     });
@@ -847,7 +855,7 @@ const game = (): Game => {
         { name: "submarine", length: 3 },
         { name: "destroyer", length: 2 },
       ];
-      const [section1, section2] = _gameInfo.canvas.views.drawer.sections.slice(1, 3);
+      const [section1, section2] = canvas.views.drawer.sections.slice(1, 3);
       ships.forEach((ship, i) => {
         const drgObj1 = draggableObjects[i * 2];
         const drgObj2 = draggableObjects[i * 2 + 1];
@@ -867,9 +875,18 @@ const game = (): Game => {
       drgObj.visible = true;
     });
   }
+  function resetAppearingText(): void {
+    appearingTextToDisplay.splice(0, appearingTextToDisplay.length);
+    appearingTextToDisplayProgress = 0;
+    appearingTextToDisplayProgressLast = -1;
+  }
+  function resetTransitioning(): void {
+    transitioningProgress = 0;
+    transitioningProgressLast = -1;
+  }
   return {
     getGameConfig,
-    getGameInfo,
+    getCanvasConfig,
     getState,
     setState,
     updateViewSizes,
@@ -883,5 +900,5 @@ const game = (): Game => {
   };
 };
 
-export { Game, GameConfig, GameInfo, GameState, game };
+export { Game, GameConfig, CanvasConfig, GameState, game };
 export default game;

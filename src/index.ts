@@ -16,7 +16,7 @@ canvas.update();
 game.updateViewSizes(canvas.getCanvasData());
 const ctx = canvas.get2dRenderingContext();
 
-const renderer = Renderer(ctx, game);
+const renderer = Renderer(ctx, game.getCanvasConfig());
 
 let prevUpdate = 0;
 window.requestAnimationFrame(update);

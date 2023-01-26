@@ -1,12 +1,11 @@
 import Point from "./data_storage/Point";
-import { Game } from "./game";
+import { CanvasConfig, Game } from "./game";
 import { Scene } from "./sceneBuilder";
-const renderer = (ctx: CanvasRenderingContext2D, game: Game) => {
-  const _gameInfo = game.getGameInfo();
+const renderer = (ctx: CanvasRenderingContext2D, canvasConfig: CanvasConfig) => {
   let _lastScene: Scene;
   function render(scene: Scene): void {
-    const scale = _gameInfo.canvas.scale;
-    const { drawer, main } = _gameInfo.canvas.views;
+    const scale = canvasConfig.scale;
+    const { drawer, main } = canvasConfig.views;
     _lastScene = scene;
     _clearCanvas();
     ctx.imageSmoothingEnabled = false;
@@ -56,8 +55,8 @@ const renderer = (ctx: CanvasRenderingContext2D, game: Game) => {
     }
   }
   function _clearCanvas(): void {
-    const scale = _gameInfo.canvas.scale;
-    const trueSize = _gameInfo.canvas.trueSize;
+    const scale = canvasConfig.scale;
+    const trueSize = canvasConfig.trueSize;
     ctx.clearRect(0, 0, trueSize.width * scale, trueSize.height * scale);
   }
   function _drawSprite(
