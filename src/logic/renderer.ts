@@ -11,38 +11,38 @@ const renderer = (ctx: CanvasRenderingContext2D, game: Game) => {
     _clearCanvas();
     ctx.imageSmoothingEnabled = false;
 
-    //SECTION1
-    ctx.fillStyle = "rgba(45,25,25,1)";
-    ctx.fillRect(
-      drawer.sections[0].start.x * scale,
-      drawer.sections[0].start.y * scale,
-      (drawer.sections[0].end.x - drawer.sections[0].start.x) * scale,
-      (drawer.sections[0].end.y - drawer.sections[0].start.y) * scale
-    );
-    //SECTION2
-    ctx.fillStyle = "rgba(25,45,25,1)";
-    ctx.fillRect(
-      drawer.sections[1].start.x * scale,
-      drawer.sections[1].start.y * scale,
-      (drawer.sections[1].end.x - drawer.sections[1].start.x) * scale,
-      (drawer.sections[1].end.y - drawer.sections[1].start.y) * scale
-    );
-    //SECTION3
-    ctx.fillStyle = "rgba(25,25,45,1)";
-    ctx.fillRect(
-      drawer.sections[2].start.x * scale,
-      drawer.sections[2].start.y * scale,
-      (drawer.sections[2].end.x - drawer.sections[2].start.x) * scale,
-      (drawer.sections[2].end.y - drawer.sections[2].start.y) * scale
-    );
-    //MAIN SECTION
-    ctx.fillStyle = "rgba(25,25,25, .2)";
-    ctx.fillRect(
-      main.start.x * scale,
-      main.start.y * scale,
-      (main.end.x - main.start.x) * scale,
-      (main.end.y - main.start.y) * scale
-    );
+    // //SECTION1
+    // ctx.fillStyle = "rgba(45,25,25,1)";
+    // ctx.fillRect(
+    //   drawer.sections[0].start.x * scale,
+    //   drawer.sections[0].start.y * scale,
+    //   (drawer.sections[0].end.x - drawer.sections[0].start.x) * scale,
+    //   (drawer.sections[0].end.y - drawer.sections[0].start.y) * scale
+    // );
+    // //SECTION2
+    // ctx.fillStyle = "rgba(25,45,25,1)";
+    // ctx.fillRect(
+    //   drawer.sections[1].start.x * scale,
+    //   drawer.sections[1].start.y * scale,
+    //   (drawer.sections[1].end.x - drawer.sections[1].start.x) * scale,
+    //   (drawer.sections[1].end.y - drawer.sections[1].start.y) * scale
+    // );
+    // //SECTION3
+    // ctx.fillStyle = "rgba(25,25,45,1)";
+    // ctx.fillRect(
+    //   drawer.sections[2].start.x * scale,
+    //   drawer.sections[2].start.y * scale,
+    //   (drawer.sections[2].end.x - drawer.sections[2].start.x) * scale,
+    //   (drawer.sections[2].end.y - drawer.sections[2].start.y) * scale
+    // );
+    // //MAIN SECTION
+    // ctx.fillStyle = "rgba(25,25,25, .2)";
+    // ctx.fillRect(
+    //   main.start.x * scale,
+    //   main.start.y * scale,
+    //   (main.end.x - main.start.x) * scale,
+    //   (main.end.y - main.start.y) * scale
+    // );
 
     scene.forEach((drawObjArray) => {
       drawObjArray.forEach((drawObj) => {
