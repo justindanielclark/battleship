@@ -68,22 +68,20 @@ const modelSprites = (): ModelSpritesLoaded => {
       createImageBitmap(SpriteSheetImage, 13, 80, 1, 16),
       createImageBitmap(SpriteSheetImage, 14, 80, 1, 16),
       createImageBitmap(SpriteSheetImage, 15, 80, 1, 16),
+      //ApearingTiles
+      createImageBitmap(SpriteSheetImage, 96, 0, 16, 16),
+      createImageBitmap(SpriteSheetImage, 96, 16, 16, 16),
+      createImageBitmap(SpriteSheetImage, 96, 32, 16, 16),
+      createImageBitmap(SpriteSheetImage, 96, 48, 16, 16),
+      createImageBitmap(SpriteSheetImage, 96, 64, 16, 16),
+      createImageBitmap(SpriteSheetImage, 96, 80, 16, 16),
+      createImageBitmap(SpriteSheetImage, 80, 80, 16, 16),
+      //Alt Highlight Tiles
+      createImageBitmap(SpriteSheetImage, 80, 48, 16, 16),
+      createImageBitmap(SpriteSheetImage, 80, 64, 16, 16),
     ]).then((sprites) => {
-      Sprites.carrier = [
-        sprites[0],
-        sprites[1],
-        sprites[2],
-        sprites[3],
-        sprites[4],
-        sprites[5],
-      ];
-      Sprites.battleship = [
-        sprites[6],
-        sprites[7],
-        sprites[8],
-        sprites[9],
-        sprites[10],
-      ];
+      Sprites.carrier = [sprites[0], sprites[1], sprites[2], sprites[3], sprites[4], sprites[5]];
+      Sprites.battleship = [sprites[6], sprites[7], sprites[8], sprites[9], sprites[10]];
       Sprites.cruiser = [sprites[11], sprites[12], sprites[13], sprites[14]];
       Sprites.submarine = [sprites[15], sprites[16], sprites[17], sprites[18]];
       Sprites.destroyer = [sprites[19], sprites[20], sprites[21]];
@@ -93,25 +91,19 @@ const modelSprites = (): ModelSpritesLoaded => {
       Sprites.highlightTiles = [sprites[28], sprites[29]];
       Sprites.reticule = [sprites[30], sprites[31], sprites[32]];
       Sprites.buttonTiles = {
-        green: [
-          sprites[33],
-          sprites[34],
-          sprites[35],
-          sprites[36],
-          sprites[37],
-          sprites[38],
-          sprites[39],
-        ],
-        red: [
-          sprites[40],
-          sprites[41],
-          sprites[42],
-          sprites[43],
-          sprites[44],
-          sprites[45],
-          sprites[46],
-        ],
+        green: [sprites[33], sprites[34], sprites[35], sprites[36], sprites[37], sprites[38], sprites[39]],
+        red: [sprites[40], sprites[41], sprites[42], sprites[43], sprites[44], sprites[45], sprites[46]],
       };
+      Sprites.appearingTiles = [
+        sprites[47],
+        sprites[48],
+        sprites[49],
+        sprites[50],
+        sprites[51],
+        sprites[52],
+        sprites[53],
+      ];
+      Sprites.altHighlightTiles = [sprites[54], sprites[55]];
       Sprites.loaded = true;
     });
   });

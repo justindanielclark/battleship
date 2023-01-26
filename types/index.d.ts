@@ -17,6 +17,8 @@ type ModelSprites = {
   radarTiles?: Array<ImageBitmap>;
   damageTiles?: Array<ImageBitmap>;
   highlightTiles?: Array<ImageBitmap>;
+  appearingTiles?: Array<ImageBitmap>;
+  altHighlightTiles?: Array<ImageBitmap>;
   buttonTiles?: {
     green: Array<ImageBitmap>;
     red: Array<ImageBitmap>;
@@ -34,6 +36,8 @@ type ModelSpritesLoaded = {
   radarTiles: Array<ImageBitmap>;
   damageTiles: Array<ImageBitmap>;
   highlightTiles: Array<ImageBitmap>;
+  appearingTiles: Array<ImageBitmap>;
+  altHighlightTiles: Array<ImageBitmap>;
   buttonTiles: {
     green: Array<ImageBitmap>;
     red: Array<ImageBitmap>;
