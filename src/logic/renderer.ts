@@ -34,6 +34,14 @@ const renderer = (ctx: CanvasRenderingContext2D, canvasConfig: CanvasConfig) => 
     //   (drawer.sections[2].end.x - drawer.sections[2].start.x) * scale,
     //   (drawer.sections[2].end.y - drawer.sections[2].start.y) * scale
     // );
+    // //DRAWER
+    // ctx.fillStyle = "rgb(45,45,45)";
+    // ctx.fillRect(
+    //   drawer.start.x * scale,
+    //   drawer.start.y * scale,
+    //   (drawer.end.x - drawer.start.x) * scale,
+    //   (drawer.end.y - drawer.start.y) * scale
+    // );
     // //MAIN SECTION
     // ctx.fillStyle = "rgba(25,25,25, .2)";
     // ctx.fillRect(
