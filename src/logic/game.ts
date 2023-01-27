@@ -5,7 +5,7 @@ import textSprites from "../assets/TextSprites";
 import { sceneBuilder, Scene, SceneBuilder } from "./sceneBuilder";
 import Ship, { Orientation, ShipPart, ShipType } from "./data_storage/Ship";
 type Turn = {
-  attackType: "salvo" | "airstrike" | "radar" | "depth charge" | "setup";
+  attackType: "salvo" | "airstrike" | "radar" | "mines";
   targetedTiles: Array<Point>;
   hitTiles: Array<Point>;
 };
@@ -15,7 +15,8 @@ type GameState =
   | "chooseOpponent"
   | "settingPieces"
   | "playerSwapScreen"
-  | "turnReview"
+  | "defensiveTurnReview"
+  | "offensiveTurnReview"
   | "attack"
   | "end";
 type BoardConfig = {
@@ -121,7 +122,7 @@ const game = (): Game => {
       ySize: 20,
     },
     updateSpeed: 16,
-    appearingTextSpeed: 0.3,
+    appearingTextSpeed: 0.65,
     transitionSpeed: 0.45,
   };
   const sprites = {
@@ -203,18 +204,17 @@ const game = (): Game => {
     },
   };
   const currentScene = sceneBuilder();
-  const Turns: [Turn, Turn] = [
-    {
-      attackType: "setup",
-      hitTiles: [],
-      targetedTiles: [],
-    },
-    {
-      attackType: "airstrike",
-      hitTiles: [],
-      targetedTiles: [],
-    },
+  const Turns: [Array<Turn>, Array<Turn>] = [
+    [],
+    [
+      // {
+      //   attackType: "salvo",
+      //   hitTiles: [new Point(0, 0)],
+      //   targetedTiles: [new Point(0, 0), new Point(1, 0), new Point(2, 0), new Point(3, 0), new Point(4, 0)],
+      // },
+    ],
   ];
+  let currentTurn = 0;
   // DECLARATIONS(End)
 
   function update() {
@@ -263,7 +263,7 @@ const game = (): Game => {
         }
         break;
       }
-      case "turnReview": {
+      case "defensiveTurnReview": {
         currentScene.flushZIndex(zIndexes.reticule);
         addAppearingTextToScene(currentScene);
         // Reticule
@@ -301,7 +301,7 @@ const game = (): Game => {
             } else {
               playerTurn = 0;
               setState("playerSwapScreen");
-              nextState = "turnReview";
+              nextState = "defensiveTurnReview";
             }
             break;
           }
@@ -341,9 +341,9 @@ const game = (): Game => {
         createButton("red", "RESET", new Point(70, 90), handleResetButton);
         transformTextToDisplayableFormat(
           appearingTextToDisplay,
-          "Drag and Drop Your Ships Into Your Desired Layout. ~Click Confirm When Complete or reset to restart.",
+          "Drop Your Ships Into Your Desired Layout. ~Click Confirm When Complete.",
           new Point(canvas.views.drawer.sections[0].start.x + 5, canvas.views.drawer.sections[0].start.y + 5),
-          new Point(canvas.views.drawer.sections[0].end.x + 5, canvas.views.drawer.sections[0].end.y - 5)
+          new Point(canvas.views.drawer.sections[0].end.x - 5, canvas.views.drawer.sections[0].end.y - 5)
         );
         addTileDesignationsToScene(currentScene);
         addFriendlyBoardToScene(currentScene, _boards[playerTurn]);
@@ -356,9 +356,9 @@ const game = (): Game => {
         readyTextForPlayerSwapScene();
         break;
       }
-      case "turnReview": {
-        readyTextForTurnReview();
-        createButton("green", "PROCEED", new Point(65, 90), handleConfirmButton);
+      case "defensiveTurnReview": {
+        readyTextForDefensiveTurnReview();
+        createButton("green", "PROCEED", new Point(35, 90), handleConfirmButton);
         addClickableObjectsToScene(currentScene);
         addTileDesignationsToScene(currentScene);
         addFriendlyBoardToScene(currentScene, _boards[playerTurn]);
@@ -442,7 +442,7 @@ const game = (): Game => {
         readyTextForPlayerSwapScene();
         break;
       }
-      case "turnReview": {
+      case "defensiveTurnReview": {
         currentScene.flushZIndex(zIndexes.tiles, zIndexes.ships, zIndexes.text);
         addTileDesignationsToScene(currentScene);
         addFriendlyBoardToScene(currentScene, _boards[playerTurn]);
@@ -545,12 +545,12 @@ const game = (): Game => {
               appearingTextToDisplay,
               "You Are Required To Place All Ships Before Pressing Confirm.",
               new Point(canvas.views.drawer.sections[0].start.x + 5, canvas.views.drawer.sections[0].start.y + 5),
-              new Point(canvas.views.drawer.sections[0].end.x + 5, canvas.views.drawer.sections[0].end.y - 5)
+              new Point(canvas.views.drawer.sections[0].end.x - 5, canvas.views.drawer.sections[0].end.y - 5)
             );
           }
           break;
         }
-        case "turnReview": {
+        case "defensiveTurnReview": {
           break;
           //! TO COMPLETE
         }
@@ -843,7 +843,7 @@ const game = (): Game => {
           y += 14;
         } else {
           displayArray.push({
-            loc: new Point(char === "." ? x - 3 : x, y),
+            loc: new Point(char === "." ? x - 2 : x, y),
             img: sprites.text[char as validTextSpriteAccessor],
           });
           x += 8;
@@ -1060,38 +1060,106 @@ const game = (): Game => {
     }
     addTextToScene(currentScene);
   }
-  function readyTextForTurnReview() {
-    const playersTurn = Turns[playerTurn];
-    const opponentsTurn = Turns[(playerTurn + 1) % 2];
-
-    switch (opponentsTurn.attackType) {
-      case "setup": {
-        transformTextToDisplayableFormat(
-          appearingTextToDisplay,
-          "You Have Received Notification The Enemy Is Near! Vision Is Limited... Orders Are To Fire And Listen For Hits!",
-          new Point(canvas.views.drawer.sections[0].start.x + 5, canvas.views.drawer.sections[0].start.y + 5),
-          new Point(canvas.views.drawer.sections[0].end.x + 5, canvas.views.drawer.sections[0].end.y - 5)
-        );
-        break;
+  function readyTextForDefensiveTurnReview() {
+    const opponentTurnHistory = Turns[playerTurn + (1 % 2)];
+    if (opponentTurnHistory.length === 0) {
+      transformTextToDisplayableFormat(
+        appearingTextToDisplay,
+        "The Enemy Is Near! Vision Is Limited. Orders Are To Fire And Listen For Hits!",
+        new Point(canvas.views.drawer.sections[0].start.x + 5, canvas.views.drawer.sections[0].start.y + 5),
+        new Point(canvas.views.drawer.sections[0].end.x - 5, canvas.views.drawer.sections[0].end.y - 5)
+      );
+    } else {
+      const opponentActions = opponentTurnHistory[currentTurn - 1];
+      const { hitTiles, targetedTiles } = opponentActions;
+      switch (opponentActions.attackType) {
+        case "airstrike": {
+          transformTextToDisplayableFormat(
+            appearingTextToDisplay,
+            "The Enemy Sent Their Planes Out In The Fog To Make A Bombing Run!",
+            new Point(canvas.views.drawer.sections[0].start.x + 5, canvas.views.drawer.sections[0].start.y + 5),
+            new Point(canvas.views.drawer.sections[0].end.x - 5, canvas.views.drawer.sections[0].end.y - 5)
+          );
+          break;
+        }
+        case "mines": {
+          transformTextToDisplayableFormat(
+            appearingTextToDisplay,
+            "A Cluster Of Mines The Enemy Left Have Detonated!",
+            new Point(canvas.views.drawer.sections[0].start.x + 5, canvas.views.drawer.sections[0].start.y + 5),
+            new Point(canvas.views.drawer.sections[0].end.x - 5, canvas.views.drawer.sections[0].end.y - 5)
+          );
+          break;
+        }
+        case "radar": {
+          transformTextToDisplayableFormat(
+            appearingTextToDisplay,
+            "No Ballistics Were Reported. The Enemy Must Scouting...",
+            new Point(canvas.views.drawer.sections[0].start.x + 5, canvas.views.drawer.sections[0].start.y + 5),
+            new Point(canvas.views.drawer.sections[0].end.x - 5, canvas.views.drawer.sections[0].end.y - 5)
+          );
+          break;
+        }
+        case "salvo": {
+          transformTextToDisplayableFormat(
+            appearingTextToDisplay,
+            "The Enemy Released A Salvo Of Shots In Our Sector!",
+            new Point(canvas.views.drawer.sections[0].start.x + 5, canvas.views.drawer.sections[0].start.y + 5),
+            new Point(canvas.views.drawer.sections[0].end.x - 5, canvas.views.drawer.sections[0].end.y - 5)
+          );
+          break;
+        }
       }
-      case "airstrike": {
+      if (targetedTiles.length === 0) {
         transformTextToDisplayableFormat(
           appearingTextToDisplay,
-          "The Enemy Sent Their Planes Out In The Fog To Make A Bombing Run!",
-          new Point(canvas.views.drawer.sections[0].start.x + 5, canvas.views.drawer.sections[0].start.y + 5),
-          new Point(canvas.views.drawer.sections[0].end.x + 5, canvas.views.drawer.sections[0].end.y - 5)
-        );
-        transformTextToDisplayableFormat(
-          appearingTextToDisplay,
-          "We Were Hit At: (A,1) ~(B,2) ~(C,3)",
+          "The Enemy Targetted None Of Our Sectors Location",
           new Point(canvas.views.drawer.sections[1].start.x + 5, canvas.views.drawer.sections[1].start.y + 5),
-          new Point(canvas.views.drawer.sections[1].end.x + 5, canvas.views.drawer.sections[1].end.y - 5)
+          new Point(canvas.views.drawer.sections[1].end.x - 5, canvas.views.drawer.sections[1].end.y - 5)
         );
-        break;
+      } else {
+        let message = "We Were Targeted In The Following Locations: ~";
+        for (let i = 0; i < targetedTiles.length; i++) {
+          message += convertPointToCoords(targetedTiles[i]);
+          if (i !== targetedTiles.length - 1) {
+            message += ", ";
+          }
+        }
+        transformTextToDisplayableFormat(
+          appearingTextToDisplay,
+          message,
+          new Point(canvas.views.drawer.sections[1].start.x + 5, canvas.views.drawer.sections[1].start.y + 5),
+          new Point(canvas.views.drawer.sections[1].end.x - 5, canvas.views.drawer.sections[1].end.y - 5)
+        );
+      }
+      if (hitTiles.length === 0) {
+        transformTextToDisplayableFormat(
+          appearingTextToDisplay,
+          "We Report No Hits To Any Of The Ships In Our Fleet",
+          new Point(canvas.views.drawer.sections[2].start.x + 5, canvas.views.drawer.sections[2].start.y + 5),
+          new Point(canvas.views.drawer.sections[2].end.x - 5, canvas.views.drawer.sections[2].end.y - 5)
+        );
+      } else {
+        let message = "We Were Hit In The Following Locations: ~";
+        for (let i = 0; i < hitTiles.length; i++) {
+          message += convertPointToCoords(hitTiles[i]);
+          if (i !== hitTiles.length - 1) {
+            message += ", ";
+          }
+        }
+        transformTextToDisplayableFormat(
+          appearingTextToDisplay,
+          message,
+          new Point(canvas.views.drawer.sections[2].start.x + 5, canvas.views.drawer.sections[2].start.y + 5),
+          new Point(canvas.views.drawer.sections[2].end.x - 5, canvas.views.drawer.sections[2].end.y - 5)
+        );
       }
     }
   }
-
+  // UTILITY
+  function convertPointToCoords(point: Point): string {
+    return `(${String.fromCharCode(point.x + 65)},${point.y + 1})`;
+  }
   return {
     getGameConfig,
     getCanvasConfig,
