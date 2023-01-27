@@ -145,19 +145,19 @@ const game = (): Game => {
   const highlightedTiles: Array<{ loc: Point; valid: boolean }> = [];
   const textToDisplay: TextDisplayArray = [];
   const appearingTextToDisplay: TextDisplayArray = [];
-  let appearingTextToDisplayProgressLast: number = -1;
-  let appearingTextToDisplayProgress: number = 0;
+  let appearingTextToDisplayProgressLast = -1;
+  let appearingTextToDisplayProgress = 0;
   let transitioning: boolean;
   let transitioningProgress = 0;
   let isTransitioningForward = true;
-  let transitionLimits = {
+  const transitionLimits = {
     upper: 6.99,
     lower: 0,
   };
   let state: GameState = "initializing";
   let nextState: GameState;
   let playerTurn = 0;
-  let opponent: "human" | "computer" = "human";
+  let opponent: "human" | "computer";
   const mouse: MouseConfig = {
     isOnScreen: false,
     isHoveringOverClickable: false,
@@ -253,8 +253,12 @@ const game = (): Game => {
   function handleTransition(): void {
     currentScene.flushZIndex(zIndexes.transitionTiles);
     transitioningProgress += isTransitioningForward ? _gameConfig.transitionSpeed : -_gameConfig.transitionSpeed;
-    const testNum = Math.floor(transitioningProgress);
-    if (testNum >= transitionLimits.upper || testNum < transitionLimits.lower) {
+    const flooredTransitioningProgress = Math.floor(transitioningProgress);
+    //Transition Ends
+    if (
+      flooredTransitioningProgress >= transitionLimits.upper ||
+      flooredTransitioningProgress < transitionLimits.lower
+    ) {
       if (isTransitioningForward) {
         transitioningProgress = transitionLimits.upper;
         switch (state) {
@@ -262,7 +266,16 @@ const game = (): Game => {
             if (playerTurn === 0) {
               playerTurn = 1;
               setState("playerSwapScreen");
+              nextState = "settingPieces";
+            } else {
+              playerTurn = 0;
+              setState("playerSwapScreen");
+              nextState = "turnReview";
             }
+            break;
+          }
+          case "playerSwapScreen": {
+            setState(nextState);
           }
         }
         addTransitionTilesToScene(currentScene);
@@ -309,15 +322,8 @@ const game = (): Game => {
         break;
       }
       case "playerSwapScreen":
-        {
-          transformTextToDisplayableFormat(
-            textToDisplay,
-            ` PLEASE SWAP CONTROL TO PLAYER ${playerTurn + 1} ~CLICK OR TAP ANYWHERE WHEN READY`,
-            new Point(canvas.trueSize.width / 2 - 114, canvas.trueSize.height / 2 - 7),
-            new Point(1000, 1000)
-          );
-        }
-        addTextToScene(currentScene);
+        resetText();
+        readyTextForPlayerSwapScene();
     }
   }
   function updateViewSizes(canvasData: CanvasData): void {
@@ -392,13 +398,7 @@ const game = (): Game => {
       case "playerSwapScreen": {
         currentScene.flushZIndex(zIndexes.text);
         resetText();
-        transformTextToDisplayableFormat(
-          textToDisplay,
-          ` PLEASE SWAP CONTROL TO PLAYER ${playerTurn + 1} ~CLICK OR TAP ANYWHERE WHEN READY`,
-          new Point(canvas.trueSize.width / 2 - 114, canvas.trueSize.height / 2 - 7),
-          new Point(1000, 1000)
-        );
-        addTextToScene(currentScene);
+        readyTextForPlayerSwapScene();
         break;
       }
     }
@@ -549,6 +549,7 @@ const game = (): Game => {
         if (!transitioning) {
           transitioning = true;
         }
+        break;
       }
       case "attack": {
         if (isWithinBoardTiles(new Point(trueX, trueY))) {
@@ -617,13 +618,6 @@ const game = (): Game => {
         }
         mouse.isHoldingDraggable = false;
         highlightedTiles.splice(0, highlightedTiles.length);
-        break;
-      }
-      case "attack": {
-        if (isWithinBoardTiles(new Point(trueX, trueY))) {
-          const clickLoc = getTileAtLocation(new Point(trueX, trueY));
-          // todo
-        }
         break;
       }
     }
@@ -724,9 +718,6 @@ const game = (): Game => {
         }
         break;
       }
-      case "attack": {
-        break;
-      }
     }
   }
   function handleMouseLeave(canvasData: DOMRect, mouseMoveLocation: Point): void {
@@ -777,18 +768,13 @@ const game = (): Game => {
       trueMouseLoc.y < canvas.views.main.boardPosition.end.y
     );
   }
-  function setAllClickable(bool: boolean): void {
-    for (const clkObj of clickableObjects) {
-      clkObj.clickable = bool;
-    }
-  }
-  //CANVAS FUNCTIONS
   function getTileAtLocation(trueMouseLoc: Point): Point {
     return new Point(
       Math.floor((trueMouseLoc.x - canvas.views.main.boardPosition.start.x - 16) / 16),
       Math.floor((trueMouseLoc.y - canvas.views.main.boardPosition.start.y - 16) / 16)
     );
   }
+  //CANVAS FUNCTIONS
   function transformTextToDisplayableFormat(displayArray: TextDisplayArray, text: string, start: Point, end: Point) {
     const words = text.split(" ");
     let x = start.x;
@@ -816,6 +802,7 @@ const game = (): Game => {
   }
 
   //SCENE FUNCTIONS
+  ///GENERIC
   function getScene(): Scene {
     return currentScene.getScene();
   }
@@ -907,7 +894,6 @@ const game = (): Game => {
     }
   }
   function addDraggableObjectsToScene(scene: SceneBuilder): void {
-    const { main } = canvas.views;
     draggableObjects.forEach((obj) => {
       if (obj.visible) {
         scene.addImgToScene(zIndexes.draggableItems, obj.img, obj.start, {
@@ -960,7 +946,6 @@ const game = (): Game => {
     }
   }
   function addTransitionTilesToScene(scene: SceneBuilder): void {
-    console.log(Math.floor(transitioningProgress));
     for (let i = 0; i < 480 / 16; i++) {
       for (let j = 0; j < 480 / 16; j++) {
         scene.addImgToScene(
@@ -1008,6 +993,19 @@ const game = (): Game => {
   function resetText(): void {
     textToDisplay.splice(0, textToDisplay.length);
   }
+  ///SCENE SPECIFIC
+  function readyTextForPlayerSwapScene() {
+    {
+      transformTextToDisplayableFormat(
+        textToDisplay,
+        ` PLEASE SWAP CONTROL TO PLAYER ${playerTurn + 1} ~CLICK OR TAP ANYWHERE WHEN READY`,
+        new Point(canvas.trueSize.width / 2 - 114, canvas.trueSize.height / 2 - 7),
+        new Point(1000, 1000)
+      );
+    }
+    addTextToScene(currentScene);
+  }
+
   return {
     getGameConfig,
     getCanvasConfig,
