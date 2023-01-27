@@ -293,6 +293,7 @@ const game = (): Game => {
         transitioningProgress = transitionLimits.upper;
         switch (state) {
           case "settingPieces": {
+            resetClickableObjects();
             if (playerTurn === 0) {
               playerTurn = 1;
               setState("playerSwapScreen");
@@ -340,7 +341,7 @@ const game = (): Game => {
         createButton("red", "RESET", new Point(70, 90), handleResetButton);
         transformTextToDisplayableFormat(
           appearingTextToDisplay,
-          "Drag and Drop Your Ships Into Your Desired Layout. ~Click Confirm When Complete or reset to restart.".toUpperCase(),
+          "Drag and Drop Your Ships Into Your Desired Layout. ~Click Confirm When Complete or reset to restart.",
           new Point(canvas.views.drawer.sections[0].start.x + 5, canvas.views.drawer.sections[0].start.y + 5),
           new Point(canvas.views.drawer.sections[0].end.x + 5, canvas.views.drawer.sections[0].end.y - 5)
         );
@@ -1043,6 +1044,9 @@ const game = (): Game => {
   }
   function resetText(): void {
     textToDisplay.splice(0, textToDisplay.length);
+  }
+  function resetClickableObjects(): void {
+    clickableObjects.splice(0, clickableObjects.length);
   }
   ///SCENE SPECIFIC
   function readyTextForPlayerSwapScene() {
