@@ -4,6 +4,11 @@ import modelSprites from "../assets/ModelSprites";
 import textSprites from "../assets/TextSprites";
 import { sceneBuilder, Scene, SceneBuilder } from "./sceneBuilder";
 import Ship, { Orientation, ShipPart, ShipType } from "./data_storage/Ship";
+type Turn = {
+  attackType: "salvo" | "airstrike" | "radar" | "depth charge" | "setup";
+  targetedTiles: Array<Point>;
+  hitTiles: Array<Point>;
+};
 type GameState =
   | "initializing"
   | "titleScreen"
@@ -112,12 +117,12 @@ const zIndexes = {
 const game = (): Game => {
   const _gameConfig: GameConfig = {
     boardConfig: {
-      xSize: 10,
-      ySize: 10,
+      xSize: 20,
+      ySize: 20,
     },
     updateSpeed: 16,
     appearingTextSpeed: 0.3,
-    transitionSpeed: 0.15,
+    transitionSpeed: 0.45,
   };
   const sprites = {
     model: modelSprites(),
@@ -198,6 +203,18 @@ const game = (): Game => {
     },
   };
   const currentScene = sceneBuilder();
+  const Turns: [Turn, Turn] = [
+    {
+      attackType: "setup",
+      hitTiles: [],
+      targetedTiles: [],
+    },
+    {
+      attackType: "airstrike",
+      hitTiles: [],
+      targetedTiles: [],
+    },
+  ];
   // DECLARATIONS(End)
 
   function update() {
@@ -247,6 +264,17 @@ const game = (): Game => {
         break;
       }
       case "turnReview": {
+        currentScene.flushZIndex(zIndexes.reticule);
+        addAppearingTextToScene(currentScene);
+        // Reticule
+        if (mouse.isOnScreen) {
+          currentScene.addImgToScene(
+            zIndexes.reticule,
+            sprites.model.reticule[0],
+            new Point(mouse.currentLoc.x - 8, mouse.currentLoc.y - 8)
+          );
+        }
+        break;
       }
     }
   }
@@ -260,6 +288,8 @@ const game = (): Game => {
       flooredTransitioningProgress < transitionLimits.lower
     ) {
       if (isTransitioningForward) {
+        resetAppearingText();
+        resetText();
         transitioningProgress = transitionLimits.upper;
         switch (state) {
           case "settingPieces": {
@@ -306,7 +336,6 @@ const game = (): Game => {
     currentScene.flushAll();
     switch (state) {
       case "settingPieces": {
-        resetAppearingText();
         createButton("green", "CONFIRM", new Point(5, 90), handleConfirmButton);
         createButton("red", "RESET", new Point(70, 90), handleResetButton);
         transformTextToDisplayableFormat(
@@ -321,9 +350,20 @@ const game = (): Game => {
         addClickableObjectsToScene(currentScene);
         break;
       }
-      case "playerSwapScreen":
+      case "playerSwapScreen": {
         resetText();
         readyTextForPlayerSwapScene();
+        break;
+      }
+      case "turnReview": {
+        readyTextForTurnReview();
+        createButton("green", "PROCEED", new Point(65, 90), handleConfirmButton);
+        addClickableObjectsToScene(currentScene);
+        addTileDesignationsToScene(currentScene);
+        addFriendlyBoardToScene(currentScene, _boards[playerTurn]);
+        addAppearingTextToScene(currentScene);
+        break;
+      }
     }
   }
   function updateViewSizes(canvasData: CanvasData): void {
@@ -399,6 +439,12 @@ const game = (): Game => {
         currentScene.flushZIndex(zIndexes.text);
         resetText();
         readyTextForPlayerSwapScene();
+        break;
+      }
+      case "turnReview": {
+        currentScene.flushZIndex(zIndexes.tiles, zIndexes.ships, zIndexes.text);
+        addTileDesignationsToScene(currentScene);
+        addFriendlyBoardToScene(currentScene, _boards[playerTurn]);
         break;
       }
     }
@@ -496,11 +542,16 @@ const game = (): Game => {
             resetAppearingText();
             transformTextToDisplayableFormat(
               appearingTextToDisplay,
-              "YOU ARE REQUIRED TO PLACE ALL SHIPS BEFORE PRESSING CONFIRM.",
+              "You Are Required To Place All Ships Before Pressing Confirm.",
               new Point(canvas.views.drawer.sections[0].start.x + 5, canvas.views.drawer.sections[0].start.y + 5),
               new Point(canvas.views.drawer.sections[0].end.x + 5, canvas.views.drawer.sections[0].end.y - 5)
             );
           }
+          break;
+        }
+        case "turnReview": {
+          break;
+          //! TO COMPLETE
         }
       }
     }
@@ -998,12 +1049,43 @@ const game = (): Game => {
     {
       transformTextToDisplayableFormat(
         textToDisplay,
-        ` PLEASE SWAP CONTROL TO PLAYER ${playerTurn + 1} ~CLICK OR TAP ANYWHERE WHEN READY`,
+        ` Please Swap Control To Player ${playerTurn + 1} ~Click or Tap Anywhere When Ready`,
         new Point(canvas.trueSize.width / 2 - 114, canvas.trueSize.height / 2 - 7),
         new Point(1000, 1000)
       );
     }
     addTextToScene(currentScene);
+  }
+  function readyTextForTurnReview() {
+    const playersTurn = Turns[playerTurn];
+    const opponentsTurn = Turns[(playerTurn + 1) % 2];
+
+    switch (opponentsTurn.attackType) {
+      case "setup": {
+        transformTextToDisplayableFormat(
+          appearingTextToDisplay,
+          "You Have Received Notification The Enemy Is Near! Vision Is Limited... Orders Are To Fire And Listen For Hits!",
+          new Point(canvas.views.drawer.sections[0].start.x + 5, canvas.views.drawer.sections[0].start.y + 5),
+          new Point(canvas.views.drawer.sections[0].end.x + 5, canvas.views.drawer.sections[0].end.y - 5)
+        );
+        break;
+      }
+      case "airstrike": {
+        transformTextToDisplayableFormat(
+          appearingTextToDisplay,
+          "The Enemy Sent Their Planes Out In The Fog To Make A Bombing Run!",
+          new Point(canvas.views.drawer.sections[0].start.x + 5, canvas.views.drawer.sections[0].start.y + 5),
+          new Point(canvas.views.drawer.sections[0].end.x + 5, canvas.views.drawer.sections[0].end.y - 5)
+        );
+        transformTextToDisplayableFormat(
+          appearingTextToDisplay,
+          "We Were Hit At: (A,1) ~(B,2) ~(C,3)",
+          new Point(canvas.views.drawer.sections[1].start.x + 5, canvas.views.drawer.sections[1].start.y + 5),
+          new Point(canvas.views.drawer.sections[1].end.x + 5, canvas.views.drawer.sections[1].end.y - 5)
+        );
+        break;
+      }
+    }
   }
 
   return {
