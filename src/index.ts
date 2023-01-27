@@ -15,7 +15,6 @@ body.append(canvas.getHTMLCanvasElement());
 canvas.update();
 game.updateViewSizes(canvas.getCanvasData());
 const ctx = canvas.get2dRenderingContext();
-
 const renderer = Renderer(ctx, game.getCanvasConfig());
 
 let prevUpdate = 0;
@@ -24,19 +23,14 @@ function update(timestamp: number) {
   const elapsed = timestamp - prevUpdate;
   if (elapsed > game.getGameConfig().updateSpeed) {
     prevUpdate = timestamp;
-    switch (game.getState()) {
-      case "initializing": {
-        if (game.areAssetsLoaded()) {
-          game.initializeValuesAfterAssetsLoaded();
-          game.setState("settingPieces");
-          // game.setState("turnReview");
-          // game.setState("attack");
-        }
-        break;
+    if (game.areAssetsLoaded()) {
+      if (game.getState() === "initializing") {
+        game.initializeValuesAfterAssetsLoaded();
+        game.setState("settingPieces");
       }
+      game.update();
+      renderer.render(game.getScene());
     }
-    const scene = game.getScene();
-    renderer.render(scene);
   }
   window.requestAnimationFrame(update);
 }
