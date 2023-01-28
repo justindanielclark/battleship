@@ -82,6 +82,7 @@ const textSprites = (): TextSpritesLoaded => {
       createImageBitmap(textSpriteSheetImage, 80, 8, 8, 8), //:
       createImageBitmap(textSpriteSheetImage, 88, 8, 8, 8), //;
       createImageBitmap(textSpriteSheetImage, 120, 8, 8, 8), // questionmark ?
+      createImageBitmap(textSpriteSheetImage, 56, 0, 8, 8), // '
     ]).then((sprites) => {
       Sprites["A"] = sprites[0];
       Sprites["B"] = sprites[1];
@@ -153,6 +154,7 @@ const textSprites = (): TextSpritesLoaded => {
       Sprites[":"] = sprites[67];
       Sprites[";"] = sprites[68];
       Sprites["?"] = sprites[69];
+      Sprites["'"] = sprites[70];
       Sprites.loaded = true;
     });
   });

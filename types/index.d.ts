@@ -115,6 +115,7 @@ type TextSprites = {
   ":"?: ImageBitmap;
   ";"?: ImageBitmap;
   "?"?: ImageBitmap;
+  "'"?: ImageBitmap;
 };
 type TextSpritesLoaded = {
   loaded: boolean;
@@ -188,6 +189,7 @@ type TextSpritesLoaded = {
   ":": ImageBitmap;
   ";": ImageBitmap;
   "?": ImageBitmap;
+  "'": ImageBitmap;
 };
 
 type validTextSpriteAccessor =
