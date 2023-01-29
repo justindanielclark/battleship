@@ -25,8 +25,7 @@ function update(timestamp: number) {
     prevUpdate = timestamp;
     if (game.areAssetsLoaded()) {
       if (game.getState() === "initializing") {
-        game.initializeValuesAfterAssetsLoaded();
-        game.setState("settingPieces");
+        game.setState("defensiveTurnReview");
       }
       game.update();
       renderer.render(game.getScene());

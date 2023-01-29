@@ -68,7 +68,11 @@ type GameConfig = {
   updateSpeed: number;
   appearingTextSpeed: number;
 };
-type TextDisplayArray = Array<{ loc: Point; img: ImageBitmap }>;
+type TextDisplayArray = Array<{
+  img: ImageBitmap;
+  root: { start: Point; end: Point };
+  offset: { x: number; y: number };
+}>;
 type Game = {
   getGameConfig(): GameConfig;
   getCanvasConfig(): CanvasConfig;
@@ -81,7 +85,6 @@ type Game = {
   handleMouseUp(canvasData: DOMRect, mouseClickLocation: Point): void;
   handleMouseMove(canvasData: DOMRect, mouseMoveLocation: Point): void;
   handleMouseLeave(canvasData: DOMRect, mouseMoveLocation: Point): void;
-  initializeValuesAfterAssetsLoaded(): void;
   update(): void;
 };
 type DraggableObject = {
@@ -122,7 +125,7 @@ const game = (): Game => {
       ySize: 20,
     },
     updateSpeed: 16,
-    appearingTextSpeed: 0.65,
+    appearingTextSpeed: 0.85,
     transitionSpeed: 0.45,
   };
   const sprites = {
@@ -138,12 +141,26 @@ const game = (): Game => {
   _boards[0].addShip(new Point(0, 2), new Ship("cruiser", "EW"));
   _boards[0].addShip(new Point(0, 3), new Ship("submarine", "EW"));
   _boards[0].addShip(new Point(0, 4), new Ship("destroyer", "EW"));
+  _boards[0].target(new Point(3, 0));
+  _boards[0].target(new Point(1, 2));
+  _boards[0].target(new Point(5, 5));
+  _boards[0].target(new Point(4, 5));
+  _boards[0].target(new Point(6, 5));
+  _boards[0].target(new Point(5, 4));
+  _boards[0].target(new Point(5, 6));
 
   _boards[1].addShip(new Point(3, 0), new Ship("carrier", "EW"));
   _boards[1].addShip(new Point(3, 1), new Ship("battleship", "EW"));
   _boards[1].addShip(new Point(3, 2), new Ship("cruiser", "EW"));
   _boards[1].addShip(new Point(3, 3), new Ship("submarine", "EW"));
   _boards[1].addShip(new Point(3, 4), new Ship("destroyer", "EW"));
+  _boards[1].target(new Point(3, 0));
+  _boards[1].target(new Point(4, 0));
+  _boards[1].target(new Point(5, 5));
+  _boards[1].target(new Point(4, 5));
+  _boards[1].target(new Point(6, 5));
+  _boards[1].target(new Point(5, 4));
+  _boards[1].target(new Point(5, 6));
   // DECLARATIONS(Start)
   const clickableObjects: Array<ClickableObject> = [];
   const draggableObjects: Array<DraggableObject> = [];
@@ -205,16 +222,22 @@ const game = (): Game => {
   };
   const currentScene = sceneBuilder();
   const Turns: [Array<Turn>, Array<Turn>] = [
-    [],
     [
-      // {
-      //   attackType: "salvo",
-      //   hitTiles: [new Point(0, 0)],
-      //   targetedTiles: [new Point(0, 0), new Point(1, 0), new Point(2, 0), new Point(3, 0), new Point(4, 0)],
-      // },
+      {
+        attackType: "radar",
+        hitTiles: [],
+        targetedTiles: [],
+      },
+    ],
+    [
+      {
+        attackType: "salvo",
+        hitTiles: [new Point(0, 0)],
+        targetedTiles: [new Point(0, 0), new Point(1, 0), new Point(2, 0), new Point(3, 0), new Point(4, 0)],
+      },
     ],
   ];
-  let currentTurn = 0;
+  let currentTurn = 1;
   // DECLARATIONS(End)
 
   function update() {
@@ -268,11 +291,39 @@ const game = (): Game => {
         addAppearingTextToScene(currentScene);
         // Reticule
         if (mouse.isOnScreen) {
-          currentScene.addImgToScene(
-            zIndexes.reticule,
-            sprites.model.reticule[0],
-            new Point(mouse.currentLoc.x - 8, mouse.currentLoc.y - 8)
-          );
+          if (mouse.isHoveringOverClickable) {
+            currentScene.addImgToScene(
+              zIndexes.reticule,
+              sprites.model.reticule[1],
+              new Point(mouse.currentLoc.x - 4, mouse.currentLoc.y)
+            );
+          } else {
+            currentScene.addImgToScene(
+              zIndexes.reticule,
+              sprites.model.reticule[0],
+              new Point(mouse.currentLoc.x - 8, mouse.currentLoc.y - 8)
+            );
+          }
+        }
+        break;
+      }
+      case "offensiveTurnReview": {
+        currentScene.flushZIndex(zIndexes.reticule);
+        addAppearingTextToScene(currentScene);
+        if (mouse.isOnScreen) {
+          if (mouse.isHoveringOverClickable) {
+            currentScene.addImgToScene(
+              zIndexes.reticule,
+              sprites.model.reticule[1],
+              new Point(mouse.currentLoc.x - 4, mouse.currentLoc.y)
+            );
+          } else {
+            currentScene.addImgToScene(
+              zIndexes.reticule,
+              sprites.model.reticule[0],
+              new Point(mouse.currentLoc.x - 8, mouse.currentLoc.y - 8)
+            );
+          }
         }
         break;
       }
@@ -288,12 +339,11 @@ const game = (): Game => {
       flooredTransitioningProgress < transitionLimits.lower
     ) {
       if (isTransitioningForward) {
-        resetAppearingText();
-        resetText();
         transitioningProgress = transitionLimits.upper;
         switch (state) {
           case "settingPieces": {
-            resetClickableObjects();
+            emptyClickableObjects();
+            emptyDraggableObjects();
             if (playerTurn === 0) {
               playerTurn = 1;
               setState("playerSwapScreen");
@@ -307,6 +357,17 @@ const game = (): Game => {
           }
           case "playerSwapScreen": {
             setState(nextState);
+            break;
+          }
+          case "defensiveTurnReview": {
+            emptyClickableObjects();
+            setState("offensiveTurnReview");
+            break;
+          }
+          case "offensiveTurnReview": {
+            emptyClickableObjects();
+            setState("attack");
+            break;
           }
         }
         addTransitionTilesToScene(currentScene);
@@ -334,16 +395,18 @@ const game = (): Game => {
     setupAfterStateChange();
   }
   function setupAfterStateChange(): void {
+    resetAppearingText();
+    resetText();
     currentScene.flushAll();
     switch (state) {
       case "settingPieces": {
+        initializeDraggableObjects();
         createButton("green", "CONFIRM", new Point(5, 90), handleConfirmButton);
         createButton("red", "RESET", new Point(70, 90), handleResetButton);
         transformTextToDisplayableFormat(
           appearingTextToDisplay,
           "Drop Your Ships Into Your Desired Layout. ~Click Confirm When Complete.",
-          new Point(canvas.views.drawer.sections[0].start.x + 5, canvas.views.drawer.sections[0].start.y + 5),
-          new Point(canvas.views.drawer.sections[0].end.x - 5, canvas.views.drawer.sections[0].end.y - 5)
+          canvas.views.drawer.sections[0]
         );
         addTileDesignationsToScene(currentScene);
         addFriendlyBoardToScene(currentScene, _boards[playerTurn]);
@@ -365,127 +428,18 @@ const game = (): Game => {
         addAppearingTextToScene(currentScene);
         break;
       }
-    }
-  }
-  function updateViewSizes(canvasData: CanvasData): void {
-    const trueSize = canvas.trueSize;
-    const { main, drawer } = canvas.views;
-    const [section1, section2, section3] = drawer.sections;
-    const boardPosition = main.boardPosition;
-    if (canvas.orientation !== canvasData.orientation) {
-      canvas.orientation = canvasData.orientation;
-      if (canvas.orientation === "landscape") {
-        trueSize.width = 480;
-        trueSize.height = 360;
-        drawer.start.x = 0;
-        drawer.start.y = 0;
-        drawer.end.x = trueSize.width / 4;
-        drawer.end.y = trueSize.height;
-        main.start.x = trueSize.width / 4;
-        main.start.y = 0;
-        main.end.x = trueSize.width;
-        main.end.y = trueSize.height;
-        boardPosition.start.x =
-          (main.end.x - main.start.x - (_gameConfig.boardConfig.xSize + 1) * 16) / 2 + main.start.x;
-        boardPosition.start.y =
-          (main.end.y - main.start.y - (_gameConfig.boardConfig.ySize + 1) * 16) / 2 + main.start.y;
-        boardPosition.end.x = main.end.x - (boardPosition.start.x - main.start.x);
-        boardPosition.end.y = main.end.y - (boardPosition.start.y - main.start.y);
-        section1.start = drawer.start;
-        section1.end = new Point(drawer.end.x, drawer.end.y / 3);
-        section2.start = new Point(drawer.start.x, drawer.end.y / 3);
-        section2.end = new Point(drawer.end.x, (drawer.end.y * 2) / 3);
-        section3.start = new Point(drawer.start.x, (drawer.end.y / 3) * 2);
-        section3.end = new Point(drawer.end.x, drawer.end.y);
-      } else if (canvas.orientation === "portrait") {
-        trueSize.width = 360;
-        trueSize.height = 480;
-        drawer.start.x = 0;
-        drawer.start.y = 0;
-        drawer.end.x = trueSize.width;
-        drawer.end.y = trueSize.height / 4;
-        main.start.x = 0;
-        main.start.y = trueSize.height / 4;
-        main.end.x = trueSize.width;
-        main.end.y = trueSize.height;
-        boardPosition.start.x =
-          (main.end.x - main.start.x - (_gameConfig.boardConfig.xSize + 1) * 16) / 2 + main.start.x;
-        boardPosition.start.y =
-          (main.end.y - main.start.y - (_gameConfig.boardConfig.ySize + 1) * 16) / 2 + main.start.y;
-        boardPosition.end.x = main.end.x - (boardPosition.start.x - main.start.x);
-        boardPosition.end.y = main.end.y - (boardPosition.start.y - main.start.y);
-        section1.start = drawer.start;
-        section1.end = new Point(drawer.end.x / 3, drawer.end.y);
-        section2.start = new Point(drawer.end.x / 3, drawer.start.y);
-        section2.end = new Point((drawer.end.x * 2) / 3, drawer.end.y);
-        section3.start = new Point((drawer.end.x * 2) / 3, drawer.start.y);
-        section3.end = new Point(drawer.end.x, drawer.end.y);
-      }
-      if (state === "settingPieces") {
-        resetDraggableObjectPositions();
-      }
-      redrawOnOrientationShift();
-    }
-    canvas.scale = canvasData.width / trueSize.width;
-  }
-  function redrawOnOrientationShift(): void {
-    switch (state) {
-      case "settingPieces": {
-        currentScene.flushZIndex(zIndexes.tiles, zIndexes.ships, zIndexes.text);
+      case "offensiveTurnReview": {
+        readyTextForOffensiveTurnReview();
+        createButton("green", "PROCEED", new Point(35, 90), handleConfirmButton);
+        addClickableObjectsToScene(currentScene);
         addTileDesignationsToScene(currentScene);
-        addFriendlyBoardToScene(currentScene, _boards[playerTurn]);
-        break;
-      }
-      case "playerSwapScreen": {
-        currentScene.flushZIndex(zIndexes.text);
-        resetText();
-        readyTextForPlayerSwapScene();
-        break;
-      }
-      case "defensiveTurnReview": {
-        currentScene.flushZIndex(zIndexes.tiles, zIndexes.ships, zIndexes.text);
-        addTileDesignationsToScene(currentScene);
-        addFriendlyBoardToScene(currentScene, _boards[playerTurn]);
-        break;
+        addEnemyBoardToScene(currentScene, _boards[(playerTurn + 1) % 2]);
+        addAppearingTextToScene(currentScene);
       }
     }
   }
   function areAssetsLoaded(): boolean {
     return sprites.model.loaded && sprites.text.loaded;
-  }
-  function initializeDraggableObjects(): void {
-    const ships: Array<{ name: ShipType; length: number }> = [
-      { name: "carrier", length: 5 },
-      { name: "battleship", length: 4 },
-      { name: "cruiser", length: 3 },
-      { name: "submarine", length: 3 },
-      { name: "destroyer", length: 2 },
-    ];
-    const [section1, section2] = canvas.views.drawer.sections.slice(1, 3);
-    ships.forEach((ship, i) => {
-      //HORIZONTAL
-      draggableObjects.push({
-        img: sprites.model[ship.name].at(-1) as ImageBitmap,
-        name: ship.name,
-        start: new Point(section1.start.x + 20, section1.start.y + 20 + i * 16),
-        end: new Point(section1.start.x + 20 + 16 * ship.length, section1.start.y + 20 + 16 + i * 16),
-        defaultStart: new Point(section1.start.x + 20, section1.start.y + 20 + i * 16),
-        defaultEnd: new Point(section1.start.x + 20 + 16 * ship.length, section1.start.y + 20 + 16 + i * 16),
-        visible: true,
-        rotation: 0,
-      });
-      //VERTICAL
-      draggableObjects.push({
-        img: sprites.model[ship.name].at(-1) as ImageBitmap,
-        name: ship.name,
-        start: new Point(section2.start.x + 20 + i * 16, section2.start.y + 20),
-        end: new Point(section2.start.x + 20 + 16 + i * 16, section2.start.y + 20 + 16 * ship.length),
-        defaultStart: new Point(section2.start.x + 20 + i * 16, section2.start.y + 20),
-        defaultEnd: new Point(section2.start.x + 20 + 16 + i * 16, section2.start.y + 20 + 16 * ship.length),
-        visible: true,
-        rotation: 90,
-      });
-    });
   }
   function createButton(
     type: "green" | "red",
@@ -527,10 +481,6 @@ const game = (): Game => {
       clickable: true,
     });
   }
-  function initializeValuesAfterAssetsLoaded(): void {
-    initializeDraggableObjects();
-  }
-
   //INTERACTIVITY
   function handleConfirmButton() {
     if (!transitioning) {
@@ -544,15 +494,20 @@ const game = (): Game => {
             transformTextToDisplayableFormat(
               appearingTextToDisplay,
               "You Are Required To Place All Ships Before Pressing Confirm.",
-              new Point(canvas.views.drawer.sections[0].start.x + 5, canvas.views.drawer.sections[0].start.y + 5),
-              new Point(canvas.views.drawer.sections[0].end.x - 5, canvas.views.drawer.sections[0].end.y - 5)
+              canvas.views.drawer.sections[0]
             );
           }
           break;
         }
         case "defensiveTurnReview": {
+          transitioning = true;
+          mouse.isHoveringOverClickable = false;
           break;
-          //! TO COMPLETE
+        }
+        case "offensiveTurnReview": {
+          transitioning = true;
+          mouse.isHoveringOverClickable = false;
+          break;
         }
       }
     }
@@ -603,6 +558,24 @@ const game = (): Game => {
         }
         break;
       }
+      case "defensiveTurnReview": {
+        if (mouse.isHoveringOverClickable) {
+          const clickedObj = isHoveringOverClickable(clickedPoint).clickableObj;
+          if (clickedObj) {
+            clickedObj.clickFunc();
+          }
+        }
+        break;
+      }
+      case "offensiveTurnReview": {
+        if (mouse.isHoveringOverClickable) {
+          const clickedObj = isHoveringOverClickable(clickedPoint).clickableObj;
+          if (clickedObj) {
+            clickedObj.clickFunc();
+          }
+        }
+        break;
+      }
       case "attack": {
         if (isWithinBoardTiles(new Point(trueX, trueY))) {
           const clickLoc = getTileAtLocation(new Point(trueX, trueY));
@@ -613,11 +586,11 @@ const game = (): Game => {
     }
   }
   function handleMouseUp(canvasData: DOMRect, mouseClickLocation: Point): void {
-    const scale = canvas.scale;
-    const trueX = (mouseClickLocation.x - canvasData.left) / scale;
-    const trueY = (mouseClickLocation.y - canvasData.top) / scale;
     switch (state) {
       case "settingPieces": {
+        const scale = canvas.scale;
+        const trueX = (mouseClickLocation.x - canvasData.left) / scale;
+        const trueY = (mouseClickLocation.y - canvasData.top) / scale;
         if (mouse.isHoldingDraggable && currentDraggedObject) {
           let orientation: Orientation;
           if (currentDraggedObject.rotation === 0) {
@@ -770,6 +743,18 @@ const game = (): Game => {
         }
         break;
       }
+      case "defensiveTurnReview": {
+        const checkPoint = new Point(trueX, trueY);
+        const clickableResults = isHoveringOverClickable(checkPoint);
+        mouse.isHoveringOverClickable = clickableResults.found;
+        break;
+      }
+      case "offensiveTurnReview": {
+        const checkPoint = new Point(trueX, trueY);
+        const clickableResults = isHoveringOverClickable(checkPoint);
+        mouse.isHoveringOverClickable = clickableResults.found;
+        break;
+      }
     }
   }
   function handleMouseLeave(canvasData: DOMRect, mouseMoveLocation: Point): void {
@@ -827,24 +812,130 @@ const game = (): Game => {
     );
   }
   //CANVAS FUNCTIONS
-  function transformTextToDisplayableFormat(displayArray: TextDisplayArray, text: string, start: Point, end: Point) {
+  function updateViewSizes(canvasData: CanvasData): void {
+    const trueSize = canvas.trueSize;
+    const { main, drawer } = canvas.views;
+    const [section1, section2, section3] = drawer.sections;
+    const boardPosition = main.boardPosition;
+    if (canvas.orientation !== canvasData.orientation) {
+      canvas.orientation = canvasData.orientation;
+      if (canvas.orientation === "landscape") {
+        trueSize.width = 480;
+        trueSize.height = 360;
+        drawer.start.x = 0;
+        drawer.start.y = 0;
+        drawer.end.x = trueSize.width / 4;
+        drawer.end.y = trueSize.height;
+        main.start.x = trueSize.width / 4;
+        main.start.y = 0;
+        main.end.x = trueSize.width;
+        main.end.y = trueSize.height;
+        boardPosition.start.x =
+          (main.end.x - main.start.x - (_gameConfig.boardConfig.xSize + 1) * 16) / 2 + main.start.x;
+        boardPosition.start.y =
+          (main.end.y - main.start.y - (_gameConfig.boardConfig.ySize + 1) * 16) / 2 + main.start.y;
+        boardPosition.end.x = main.end.x - (boardPosition.start.x - main.start.x);
+        boardPosition.end.y = main.end.y - (boardPosition.start.y - main.start.y);
+        section1.start = drawer.start;
+        section1.end = new Point(drawer.end.x, drawer.end.y / 3);
+        section2.start = new Point(drawer.start.x, drawer.end.y / 3);
+        section2.end = new Point(drawer.end.x, (drawer.end.y * 2) / 3);
+        section3.start = new Point(drawer.start.x, (drawer.end.y / 3) * 2);
+        section3.end = new Point(drawer.end.x, drawer.end.y);
+      } else if (canvas.orientation === "portrait") {
+        trueSize.width = 360;
+        trueSize.height = 480;
+        drawer.start.x = 0;
+        drawer.start.y = 0;
+        drawer.end.x = trueSize.width;
+        drawer.end.y = trueSize.height / 4;
+        main.start.x = 0;
+        main.start.y = trueSize.height / 4;
+        main.end.x = trueSize.width;
+        main.end.y = trueSize.height;
+        boardPosition.start.x =
+          (main.end.x - main.start.x - (_gameConfig.boardConfig.xSize + 1) * 16) / 2 + main.start.x;
+        boardPosition.start.y =
+          (main.end.y - main.start.y - (_gameConfig.boardConfig.ySize + 1) * 16) / 2 + main.start.y;
+        boardPosition.end.x = main.end.x - (boardPosition.start.x - main.start.x);
+        boardPosition.end.y = main.end.y - (boardPosition.start.y - main.start.y);
+        section1.start = drawer.start;
+        section1.end = new Point(drawer.end.x / 3, drawer.end.y);
+        section2.start = new Point(drawer.end.x / 3, drawer.start.y);
+        section2.end = new Point((drawer.end.x * 2) / 3, drawer.end.y);
+        section3.start = new Point((drawer.end.x * 2) / 3, drawer.start.y);
+        section3.end = new Point(drawer.end.x, drawer.end.y);
+      }
+      if (state === "settingPieces") {
+        resetDraggableObjectPositions();
+      }
+      redrawOnOrientationShift();
+    }
+    canvas.scale = canvasData.width / trueSize.width;
+  }
+  function redrawOnOrientationShift(): void {
+    switch (state) {
+      case "settingPieces": {
+        currentScene.flushZIndex(zIndexes.tiles, zIndexes.ships, zIndexes.text);
+        addTileDesignationsToScene(currentScene);
+        addFriendlyBoardToScene(currentScene, _boards[playerTurn]);
+        break;
+      }
+      case "playerSwapScreen": {
+        currentScene.flushZIndex(zIndexes.text);
+        resetText();
+        readyTextForPlayerSwapScene();
+        break;
+      }
+      case "defensiveTurnReview": {
+        currentScene.flushZIndex(zIndexes.tiles, zIndexes.ships, zIndexes.text, zIndexes.appearingText);
+        addTileDesignationsToScene(currentScene);
+        addFriendlyBoardToScene(currentScene, _boards[playerTurn]);
+        redrawAppearingText();
+        break;
+      }
+      case "offensiveTurnReview": {
+        currentScene.flushZIndex(zIndexes.tiles, zIndexes.ships, zIndexes.text, zIndexes.appearingText);
+        addTileDesignationsToScene(currentScene);
+        addEnemyBoardToScene(currentScene, _boards[playerTurn]);
+        redrawAppearingText();
+        break;
+      }
+    }
+    function redrawAppearingText() {
+      for (let i = 0; i < appearingTextToDisplayProgressLast; i++) {
+        const { img, offset, root } = appearingTextToDisplay[i];
+        currentScene.addImgToScene(
+          zIndexes.appearingText,
+          img,
+          new Point(root.start.x + offset.x, root.start.y + offset.y)
+        );
+      }
+    }
+  }
+  function transformTextToDisplayableFormat(
+    displayArray: TextDisplayArray,
+    text: string,
+    root: { start: Point; end: Point }
+  ) {
     const words = text.split(" ");
-    let x = start.x;
-    let y = start.y;
+    let x = root.start.x + 3;
+    let y = root.start.y + 3;
     for (const word of words) {
-      if (x + word.length * 9 > end.x) {
+      if (x + word.length * 8 > root.end.x - 3) {
         y += 9;
-        x = start.x;
+        x = root.start.x + 3;
       }
       const wordArr = word.split("");
       for (const char of wordArr) {
         if (char === "~") {
-          x = start.x;
+          x = root.start.x + 3;
           y += 14;
         } else {
           displayArray.push({
-            loc: new Point(char === "." ? x - 2 : x, y),
             img: sprites.text[char as validTextSpriteAccessor],
+            root,
+            offset: { x: x - root.start.x, y: y - root.start.y },
           });
           x += 8;
         }
@@ -971,14 +1062,18 @@ const game = (): Game => {
   }
   function addTextToScene(scene: SceneBuilder): void {
     for (const item of textToDisplay) {
-      scene.addImgToScene(zIndexes.text, item.img, item.loc);
+      scene.addImgToScene(
+        zIndexes.text,
+        item.img,
+        new Point(item.root.start.x + item.offset.x, item.root.start.y + item.offset.y)
+      );
     }
   }
   function addAppearingTextToScene(scene: SceneBuilder): void {
     if (appearingTextToDisplayProgress < appearingTextToDisplay.length) {
       if (Math.floor(appearingTextToDisplayProgressLast) !== Math.floor(appearingTextToDisplayProgress)) {
-        const { img, loc } = appearingTextToDisplay[Math.floor(appearingTextToDisplayProgress)];
-        scene.addImgToScene(zIndexes.appearingText, img, loc);
+        const { img, root, offset } = appearingTextToDisplay[Math.floor(appearingTextToDisplayProgress)];
+        scene.addImgToScene(zIndexes.appearingText, img, new Point(root.start.x + offset.x, root.start.y + offset.y));
       }
       appearingTextToDisplayProgressLast = appearingTextToDisplayProgress;
       appearingTextToDisplayProgress += _gameConfig.appearingTextSpeed;
@@ -1007,6 +1102,43 @@ const game = (): Game => {
         );
       }
     }
+  }
+  function initializeDraggableObjects(): void {
+    const ships: Array<{ name: ShipType; length: number }> = [
+      { name: "carrier", length: 5 },
+      { name: "battleship", length: 4 },
+      { name: "cruiser", length: 3 },
+      { name: "submarine", length: 3 },
+      { name: "destroyer", length: 2 },
+    ];
+    const [section1, section2] = canvas.views.drawer.sections.slice(1, 3);
+    ships.forEach((ship, i) => {
+      //HORIZONTAL
+      draggableObjects.push({
+        img: sprites.model[ship.name].at(-1) as ImageBitmap,
+        name: ship.name,
+        start: new Point(section1.start.x + 20, section1.start.y + 20 + i * 16),
+        end: new Point(section1.start.x + 20 + 16 * ship.length, section1.start.y + 20 + 16 + i * 16),
+        defaultStart: new Point(section1.start.x + 20, section1.start.y + 20 + i * 16),
+        defaultEnd: new Point(section1.start.x + 20 + 16 * ship.length, section1.start.y + 20 + 16 + i * 16),
+        visible: true,
+        rotation: 0,
+      });
+      //VERTICAL
+      draggableObjects.push({
+        img: sprites.model[ship.name].at(-1) as ImageBitmap,
+        name: ship.name,
+        start: new Point(section2.start.x + 20 + i * 16, section2.start.y + 20),
+        end: new Point(section2.start.x + 20 + 16 + i * 16, section2.start.y + 20 + 16 * ship.length),
+        defaultStart: new Point(section2.start.x + 20 + i * 16, section2.start.y + 20),
+        defaultEnd: new Point(section2.start.x + 20 + 16 + i * 16, section2.start.y + 20 + 16 * ship.length),
+        visible: true,
+        rotation: 90,
+      });
+    });
+  }
+  function emptyDraggableObjects(): void {
+    draggableObjects.splice(0, draggableObjects.length);
   }
   function resetDraggableObjectPositions(): void {
     if (draggableObjects.length > 0) {
@@ -1045,7 +1177,7 @@ const game = (): Game => {
   function resetText(): void {
     textToDisplay.splice(0, textToDisplay.length);
   }
-  function resetClickableObjects(): void {
+  function emptyClickableObjects(): void {
     clickableObjects.splice(0, clickableObjects.length);
   }
   ///SCENE SPECIFIC
@@ -1054,8 +1186,10 @@ const game = (): Game => {
       transformTextToDisplayableFormat(
         textToDisplay,
         ` Please Swap Control To Player ${playerTurn + 1} ~Click or Tap Anywhere When Ready`,
-        new Point(canvas.trueSize.width / 2 - 114, canvas.trueSize.height / 2 - 7),
-        new Point(1000, 1000)
+        {
+          start: new Point(canvas.trueSize.width / 2 - 120, canvas.trueSize.height / 2 - 7),
+          end: new Point(10000, 10000),
+        }
       );
     }
     addTextToScene(currentScene);
@@ -1066,8 +1200,7 @@ const game = (): Game => {
       transformTextToDisplayableFormat(
         appearingTextToDisplay,
         "The Enemy Is Near! Vision Is Limited. Orders Are To Fire And Listen For Hits!",
-        new Point(canvas.views.drawer.sections[0].start.x + 5, canvas.views.drawer.sections[0].start.y + 5),
-        new Point(canvas.views.drawer.sections[0].end.x - 5, canvas.views.drawer.sections[0].end.y - 5)
+        canvas.views.drawer.sections[0]
       );
     } else {
       const opponentActions = opponentTurnHistory[currentTurn - 1];
@@ -1077,8 +1210,7 @@ const game = (): Game => {
           transformTextToDisplayableFormat(
             appearingTextToDisplay,
             "The Enemy Sent Their Planes Out In The Fog To Make A Bombing Run!",
-            new Point(canvas.views.drawer.sections[0].start.x + 5, canvas.views.drawer.sections[0].start.y + 5),
-            new Point(canvas.views.drawer.sections[0].end.x - 5, canvas.views.drawer.sections[0].end.y - 5)
+            canvas.views.drawer.sections[0]
           );
           break;
         }
@@ -1086,8 +1218,7 @@ const game = (): Game => {
           transformTextToDisplayableFormat(
             appearingTextToDisplay,
             "A Cluster Of Mines The Enemy Left Have Detonated!",
-            new Point(canvas.views.drawer.sections[0].start.x + 5, canvas.views.drawer.sections[0].start.y + 5),
-            new Point(canvas.views.drawer.sections[0].end.x - 5, canvas.views.drawer.sections[0].end.y - 5)
+            canvas.views.drawer.sections[0]
           );
           break;
         }
@@ -1095,8 +1226,7 @@ const game = (): Game => {
           transformTextToDisplayableFormat(
             appearingTextToDisplay,
             "No Ballistics Were Reported. The Enemy Must Scouting...",
-            new Point(canvas.views.drawer.sections[0].start.x + 5, canvas.views.drawer.sections[0].start.y + 5),
-            new Point(canvas.views.drawer.sections[0].end.x - 5, canvas.views.drawer.sections[0].end.y - 5)
+            canvas.views.drawer.sections[0]
           );
           break;
         }
@@ -1104,8 +1234,7 @@ const game = (): Game => {
           transformTextToDisplayableFormat(
             appearingTextToDisplay,
             "The Enemy Released A Salvo Of Shots In Our Sector!",
-            new Point(canvas.views.drawer.sections[0].start.x + 5, canvas.views.drawer.sections[0].start.y + 5),
-            new Point(canvas.views.drawer.sections[0].end.x - 5, canvas.views.drawer.sections[0].end.y - 5)
+            canvas.views.drawer.sections[0]
           );
           break;
         }
@@ -1114,8 +1243,7 @@ const game = (): Game => {
         transformTextToDisplayableFormat(
           appearingTextToDisplay,
           "The Enemy Targetted None Of Our Sectors Location",
-          new Point(canvas.views.drawer.sections[1].start.x + 5, canvas.views.drawer.sections[1].start.y + 5),
-          new Point(canvas.views.drawer.sections[1].end.x - 5, canvas.views.drawer.sections[1].end.y - 5)
+          canvas.views.drawer.sections[1]
         );
       } else {
         let message = "We Were Targeted In The Following Locations: ~";
@@ -1125,19 +1253,13 @@ const game = (): Game => {
             message += ", ";
           }
         }
-        transformTextToDisplayableFormat(
-          appearingTextToDisplay,
-          message,
-          new Point(canvas.views.drawer.sections[1].start.x + 5, canvas.views.drawer.sections[1].start.y + 5),
-          new Point(canvas.views.drawer.sections[1].end.x - 5, canvas.views.drawer.sections[1].end.y - 5)
-        );
+        transformTextToDisplayableFormat(appearingTextToDisplay, message, canvas.views.drawer.sections[1]);
       }
       if (hitTiles.length === 0) {
         transformTextToDisplayableFormat(
           appearingTextToDisplay,
           "We Report No Hits To Any Of The Ships In Our Fleet",
-          new Point(canvas.views.drawer.sections[2].start.x + 5, canvas.views.drawer.sections[2].start.y + 5),
-          new Point(canvas.views.drawer.sections[2].end.x - 5, canvas.views.drawer.sections[2].end.y - 5)
+          canvas.views.drawer.sections[2]
         );
       } else {
         let message = "We Were Hit In The Following Locations: ~";
@@ -1147,12 +1269,86 @@ const game = (): Game => {
             message += ", ";
           }
         }
+        transformTextToDisplayableFormat(appearingTextToDisplay, message, canvas.views.drawer.sections[2]);
+      }
+    }
+  }
+  function readyTextForOffensiveTurnReview() {
+    const playerHistory = Turns[playerTurn];
+    if (playerHistory.length === 0) {
+      transformTextToDisplayableFormat(
+        appearingTextToDisplay,
+        "The Enemy Is Near! Vision Is Limited. Orders Are To Fire And Listen For Hits!",
+        canvas.views.drawer.sections[0]
+      );
+    } else {
+      const playerActions = playerHistory[currentTurn - 1];
+      const { hitTiles, targetedTiles } = playerActions;
+      switch (playerActions.attackType) {
+        case "airstrike": {
+          transformTextToDisplayableFormat(
+            appearingTextToDisplay,
+            "We Sent Our Planes Out In The Night For A Bombing Run On Suspected Targets!",
+            canvas.views.drawer.sections[0]
+          );
+          break;
+        }
+        case "mines": {
+          transformTextToDisplayableFormat(
+            appearingTextToDisplay,
+            "A Cluster Of Mines We Left Have Been Detonated!",
+            canvas.views.drawer.sections[0]
+          );
+          break;
+        }
+        case "radar": {
+          transformTextToDisplayableFormat(
+            appearingTextToDisplay,
+            "We Sent Out For Scouting. The Report Is In...",
+            canvas.views.drawer.sections[0]
+          );
+          break;
+        }
+        case "salvo": {
+          transformTextToDisplayableFormat(
+            appearingTextToDisplay,
+            "We Fired A Salvo Of Shots Into The Enemy Sector",
+            canvas.views.drawer.sections[0]
+          );
+          break;
+        }
+      }
+      if (targetedTiles.length === 0) {
         transformTextToDisplayableFormat(
           appearingTextToDisplay,
-          message,
-          new Point(canvas.views.drawer.sections[2].start.x + 5, canvas.views.drawer.sections[2].start.y + 5),
-          new Point(canvas.views.drawer.sections[2].end.x - 5, canvas.views.drawer.sections[2].end.y - 5)
+          "We Targeted None Of The Enemy's Locations",
+          canvas.views.drawer.sections[1]
         );
+      } else {
+        let message = "We Targeted The Enemy In The Following Locations: ~";
+        for (let i = 0; i < targetedTiles.length; i++) {
+          message += convertPointToCoords(targetedTiles[i]);
+          if (i !== targetedTiles.length - 1) {
+            message += ", ";
+          }
+        }
+        transformTextToDisplayableFormat(appearingTextToDisplay, message, canvas.views.drawer.sections[1]);
+      }
+      if (hitTiles.length === 0) {
+        transformTextToDisplayableFormat(
+          appearingTextToDisplay,
+          "We Were Unable To Record A Single Hit",
+          canvas.views.drawer.sections[2]
+        );
+      } else {
+        let message = "The Enemy Was Struck In The Following Locations: ~";
+        for (let i = 0; i < hitTiles.length; i++) {
+          message += convertPointToCoords(hitTiles[i]);
+          if (i !== hitTiles.length - 1) {
+            message += ", ";
+          }
+        }
+        transformTextToDisplayableFormat(appearingTextToDisplay, message, canvas.views.drawer.sections[2]);
       }
     }
   }
@@ -1172,7 +1368,6 @@ const game = (): Game => {
     handleMouseUp,
     handleMouseMove,
     handleMouseLeave,
-    initializeValuesAfterAssetsLoaded,
     update,
   };
 };
