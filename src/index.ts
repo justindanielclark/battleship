@@ -10,7 +10,7 @@ body.classList.add("bg-stone-800", "flex", "justify-center", "items-center", "mi
 const game = Game();
 const canvas = Canvas();
 const canvasEL = canvas.getHTMLCanvasElement();
-canvasEL.classList.add("cursor-none", "border-4", "rounded-lg", "border-amber-300");
+canvasEL.classList.add("cursor-none");
 body.append(canvas.getHTMLCanvasElement());
 canvas.update();
 game.updateViewSizes(canvas.getCanvasData());
@@ -25,7 +25,7 @@ function update(timestamp: number) {
     prevUpdate = timestamp;
     if (game.areAssetsLoaded()) {
       if (game.getState() === "initializing") {
-        game.setState("defensiveTurnReview");
+        game.setState("attack");
       }
       game.update();
       renderer.render(game.getScene());
