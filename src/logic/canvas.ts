@@ -21,8 +21,8 @@ const canvas = () => {
   function _updateCanvasData(): void {
     let greater;
     let lesser;
-    const windowInnerHeight = window.innerHeight - 16;
-    const windowInnerWidth = window.innerWidth - 16;
+    const windowInnerHeight = window.innerHeight;
+    const windowInnerWidth = window.innerWidth;
 
     if (windowInnerHeight > windowInnerWidth) {
       greater = windowInnerHeight;
@@ -33,11 +33,11 @@ const canvas = () => {
       lesser = windowInnerHeight;
       _data.orientation = "landscape";
     }
-    while (lesser % 3 !== 0) {
-      lesser--;
-    }
+    // while (lesser % 3 !== 0) {
+    //   lesser--;
+    // }
     if ((lesser * 4) / 3 > greater) {
-      while (greater % 4 !== 0) {
+      while (greater % 120 !== 0) {
         greater--;
       }
       lesser = (greater * 3) / 4;
