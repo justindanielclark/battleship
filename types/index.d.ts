@@ -19,6 +19,7 @@ type ModelSprites = {
   highlightTiles?: Array<ImageBitmap>;
   appearingTiles?: Array<ImageBitmap>;
   altHighlightTiles?: Array<ImageBitmap>;
+  abilities?: Array<ImageBitmap>;
   buttonTiles?: {
     green: Array<ImageBitmap>;
     red: Array<ImageBitmap>;
@@ -38,6 +39,7 @@ type ModelSpritesLoaded = {
   highlightTiles: Array<ImageBitmap>;
   appearingTiles: Array<ImageBitmap>;
   altHighlightTiles: Array<ImageBitmap>;
+  abilities: Array<ImageBitmap>;
   buttonTiles: {
     green: Array<ImageBitmap>;
     red: Array<ImageBitmap>;

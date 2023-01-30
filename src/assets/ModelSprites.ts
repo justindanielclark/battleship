@@ -79,6 +79,11 @@ const modelSprites = (): ModelSpritesLoaded => {
       //Alt Highlight Tiles
       createImageBitmap(SpriteSheetImage, 80, 48, 16, 16),
       createImageBitmap(SpriteSheetImage, 80, 64, 16, 16),
+      //Abilities
+      createImageBitmap(SpriteSheetImage, 64, 16, 16, 16),
+      createImageBitmap(SpriteSheetImage, 80, 0, 16, 16),
+      createImageBitmap(SpriteSheetImage, 80, 16, 16, 16),
+      createImageBitmap(SpriteSheetImage, 80, 32, 16, 16),
     ]).then((sprites) => {
       Sprites.carrier = [sprites[0], sprites[1], sprites[2], sprites[3], sprites[4], sprites[5]];
       Sprites.battleship = [sprites[6], sprites[7], sprites[8], sprites[9], sprites[10]];
@@ -104,6 +109,7 @@ const modelSprites = (): ModelSpritesLoaded => {
         sprites[53],
       ];
       Sprites.altHighlightTiles = [sprites[54], sprites[55]];
+      Sprites.abilities = [sprites[56], sprites[57], sprites[58], sprites[59]];
       Sprites.loaded = true;
     });
   });
