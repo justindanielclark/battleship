@@ -4,8 +4,9 @@ import modelSprites from "../assets/ModelSprites";
 import textSprites from "../assets/TextSprites";
 import { sceneBuilder, Scene, SceneBuilder } from "./sceneBuilder";
 import Ship, { Orientation, ShipPart, ShipType } from "./data_storage/Ship";
+type AttackTypes = "salvo" | "airstrike" | "radar" | "mines";
 type Turn = {
-  attackType: "salvo" | "airstrike" | "radar" | "mines";
+  attackType: AttackTypes;
   targetedTiles: Array<Point>;
   hitTiles: Array<Point>;
 };
@@ -19,6 +20,7 @@ type GameState =
   | "offensiveTurnReview"
   | "attack"
   | "end";
+type PlayerCooldowns = {};
 type BoardConfig = {
   xSize: number;
   ySize: number;
@@ -141,31 +143,18 @@ const game = (): Game => {
   _boards[0].addShip(new Point(0, 2), new Ship("cruiser", "EW"));
   _boards[0].addShip(new Point(0, 3), new Ship("submarine", "EW"));
   _boards[0].addShip(new Point(0, 4), new Ship("destroyer", "EW"));
-  _boards[0].target(new Point(3, 0));
-  _boards[0].target(new Point(1, 2));
-  _boards[0].target(new Point(5, 5));
-  _boards[0].target(new Point(4, 5));
-  _boards[0].target(new Point(6, 5));
-  _boards[0].target(new Point(5, 4));
-  _boards[0].target(new Point(5, 6));
 
   _boards[1].addShip(new Point(3, 0), new Ship("carrier", "EW"));
   _boards[1].addShip(new Point(3, 1), new Ship("battleship", "EW"));
   _boards[1].addShip(new Point(3, 2), new Ship("cruiser", "EW"));
   _boards[1].addShip(new Point(3, 3), new Ship("submarine", "EW"));
   _boards[1].addShip(new Point(3, 4), new Ship("destroyer", "EW"));
-  _boards[1].target(new Point(3, 0));
-  _boards[1].target(new Point(4, 0));
-  _boards[1].target(new Point(5, 5));
-  _boards[1].target(new Point(4, 5));
-  _boards[1].target(new Point(6, 5));
-  _boards[1].target(new Point(5, 4));
-  _boards[1].target(new Point(5, 6));
   // DECLARATIONS(Start)
   const clickableObjects: Array<ClickableObject> = [];
   const draggableObjects: Array<DraggableObject> = [];
   let currentDraggedObject: DraggableObject | undefined;
-  const highlightedTiles: Array<{ loc: Point; valid: boolean }> = [];
+  const validTilesForPlacement: Array<{ loc: Point; valid: boolean }> = [];
+  let targetedTiles: Array<Point>;
   const textToDisplay: TextDisplayArray = [];
   const appearingTextToDisplay: TextDisplayArray = [];
   let appearingTextToDisplayProgressLast = -1;
@@ -223,21 +212,35 @@ const game = (): Game => {
   const currentScene = sceneBuilder();
   const Turns: [Array<Turn>, Array<Turn>] = [
     [
-      {
-        attackType: "radar",
-        hitTiles: [],
-        targetedTiles: [],
-      },
+      // {
+      //   attackType: "airstrike",
+      //   hitTiles: [new Point(0, 0)],
+      //   targetedTiles: [new Point(0, 0), new Point(1, 0), new Point(2, 0), new Point(3, 0), new Point(4, 0)],
+      // },
     ],
     [
-      {
-        attackType: "salvo",
-        hitTiles: [new Point(0, 0)],
-        targetedTiles: [new Point(0, 0), new Point(1, 0), new Point(2, 0), new Point(3, 0), new Point(4, 0)],
-      },
+      // {
+      //   attackType: "salvo",
+      //   hitTiles: [],
+      //   targetedTiles: [new Point(0, 8), new Point(1, 8), new Point(2, 8), new Point(3, 8), new Point(4, 8)],
+      // },
     ],
   ];
-  let currentTurn = 1;
+  const Cooldowns = [
+    {
+      airstrike: 0,
+      mines: 0,
+    },
+    {
+      airstrike: 0,
+      mines: 0,
+    },
+  ];
+  const CooldownLimits = {
+    airstrike: 5,
+    mines: 4,
+  };
+  let currentTurn = 0;
   // DECLARATIONS(End)
 
   function update() {
@@ -247,7 +250,7 @@ const game = (): Game => {
     switch (state) {
       case "settingPieces": {
         currentScene.flushZIndex(zIndexes.reticule, zIndexes.draggableItems, zIndexes.highlightTiles);
-        addHighlightedTitlesToScene(currentScene);
+        addValidForPlacementTilesToScreen(currentScene);
         addDraggableObjectsToScene(currentScene);
         addAppearingTextToScene(currentScene);
         // Reticule
@@ -326,6 +329,16 @@ const game = (): Game => {
           }
         }
         break;
+      }
+      case "attack": {
+        currentScene.flushZIndex(zIndexes.reticule);
+        if (mouse.isOnScreen) {
+          currentScene.addImgToScene(
+            zIndexes.reticule,
+            sprites.model.reticule[0],
+            new Point(mouse.currentLoc.x - 8, mouse.currentLoc.y - 8)
+          );
+        }
       }
     }
   }
@@ -421,6 +434,9 @@ const game = (): Game => {
       }
       case "defensiveTurnReview": {
         readyTextForDefensiveTurnReview();
+        if (currentTurn > 0) {
+          targetedTiles = Turns[(playerTurn + 1) % 2][currentTurn - 1].targetedTiles;
+        }
         createButton("green", "PROCEED", new Point(35, 90), handleConfirmButton);
         addClickableObjectsToScene(currentScene);
         addTileDesignationsToScene(currentScene);
@@ -430,56 +446,29 @@ const game = (): Game => {
       }
       case "offensiveTurnReview": {
         readyTextForOffensiveTurnReview();
+        if (currentTurn > 0) {
+          targetedTiles = Turns[playerTurn][currentTurn - 1].targetedTiles;
+        }
         createButton("green", "PROCEED", new Point(35, 90), handleConfirmButton);
         addClickableObjectsToScene(currentScene);
         addTileDesignationsToScene(currentScene);
         addEnemyBoardToScene(currentScene, _boards[(playerTurn + 1) % 2]);
         addAppearingTextToScene(currentScene);
+        break;
+      }
+      case "attack": {
+        transformTextToDisplayableFormat(textToDisplay, "CHOOSE ATTACK:", canvas.views.drawer.sections[0]);
+        addTileDesignationsToScene(currentScene);
+        addEnemyBoardToScene(currentScene, _boards[(playerTurn + 1) % 2]);
+        createAbilityButtons();
+        addTextToScene(currentScene);
+        addClickableObjectsToScene(currentScene);
+        break;
       }
     }
   }
   function areAssetsLoaded(): boolean {
     return sprites.model.loaded && sprites.text.loaded;
-  }
-  function createButton(
-    type: "green" | "red",
-    text: string,
-    loc: Point,
-    clickFunc: () => void,
-    hoverFunc: undefined | (() => void) = undefined
-  ): void {
-    const wordPixelLength = text.length * 8;
-    const spritesBackground = type === "green" ? sprites.model.buttonTiles.green : sprites.model.buttonTiles.red;
-    const imgs: Array<{ img: ImageBitmap; zIndex: number; loc: Point; stretchedWidth?: number }> = [];
-    imgs.push(
-      { img: spritesBackground[0], zIndex: zIndexes.button, loc: new Point(0, 0) },
-      { img: spritesBackground[1], zIndex: zIndexes.button, loc: new Point(1, 0) },
-      { img: spritesBackground[2], zIndex: zIndexes.button, loc: new Point(2, 0) },
-      {
-        img: spritesBackground[3],
-        zIndex: zIndexes.button,
-        loc: new Point(3, 0),
-        stretchedWidth: wordPixelLength - 1,
-      },
-      { img: spritesBackground[4], zIndex: zIndexes.button, loc: new Point(2 + wordPixelLength, 0) },
-      { img: spritesBackground[5], zIndex: zIndexes.button, loc: new Point(3 + wordPixelLength, 0) },
-      { img: spritesBackground[6], zIndex: zIndexes.button, loc: new Point(4 + wordPixelLength, 0) }
-    );
-    text.split("").forEach((char, i) => {
-      imgs.push({
-        img: sprites.text[char as validTextSpriteAccessor],
-        zIndex: zIndexes.button,
-        loc: new Point(3 + i * 8, 4),
-      });
-    });
-    clickableObjects.push({
-      imgs,
-      start: loc,
-      end: new Point(loc.x + 6 + wordPixelLength, loc.y + 16),
-      clickFunc,
-      hoverFunc,
-      clickable: true,
-    });
   }
   //INTERACTIVITY
   function handleConfirmButton() {
@@ -612,7 +601,7 @@ const game = (): Game => {
           const endWithinBounds = isWithinBoardTiles(endCheckLoc);
           if (startWithinBounds && endWithinBounds) {
             const shipType = currentDraggedObject.name;
-            const dropPoint = highlightedTiles[0].loc;
+            const dropPoint = validTilesForPlacement[0].loc;
             const isValid = _boards[playerTurn].isValidPlacementLocation(dropPoint, new Ship(shipType, orientation));
             if (isValid) {
               _boards[playerTurn].addShip(dropPoint, new Ship(shipType, orientation));
@@ -642,7 +631,7 @@ const game = (): Game => {
           mouse.isHoveringOverDraggable = false;
         }
         mouse.isHoldingDraggable = false;
-        highlightedTiles.splice(0, highlightedTiles.length);
+        validTilesForPlacement.splice(0, validTilesForPlacement.length);
         break;
       }
     }
@@ -675,7 +664,7 @@ const game = (): Game => {
             const endWithinBounds = isWithinBoardTiles(endCheckLoc);
             const startTile = startWithinBounds ? getTileAtLocation(startCheckLoc) : undefined;
             const endTile = endWithinBounds ? getTileAtLocation(endCheckLoc) : undefined;
-            highlightedTiles.length = 0;
+            validTilesForPlacement.length = 0;
             if (startTile && endTile) {
               if (currentDraggedObject.rotation === 0) {
                 const isValid = _boards[playerTurn].isValidPlacementLocation(
@@ -683,7 +672,7 @@ const game = (): Game => {
                   new Ship(currentDraggedObject.name, "EW")
                 );
                 for (let i = startTile.x; i <= endTile.x; i++) {
-                  highlightedTiles.push({
+                  validTilesForPlacement.push({
                     loc: new Point(i, startTile.y),
                     valid: isValid,
                   });
@@ -694,7 +683,7 @@ const game = (): Game => {
                   new Ship(currentDraggedObject.name, "NS")
                 );
                 for (let i = startTile.y; i <= endTile.y; i++) {
-                  highlightedTiles.push({
+                  validTilesForPlacement.push({
                     loc: new Point(startTile.x, i),
                     valid: isValid,
                   });
@@ -703,14 +692,14 @@ const game = (): Game => {
             } else if (startTile) {
               if (currentDraggedObject.rotation === 0) {
                 for (let i = startTile.x; i < _gameConfig.boardConfig.xSize; i++) {
-                  highlightedTiles.push({
+                  validTilesForPlacement.push({
                     loc: new Point(i, startTile.y),
                     valid: false,
                   });
                 }
               } else {
                 for (let i = startTile.y; i < _gameConfig.boardConfig.ySize; i++) {
-                  highlightedTiles.push({
+                  validTilesForPlacement.push({
                     loc: new Point(startTile.x, i),
                     valid: false,
                   });
@@ -719,14 +708,14 @@ const game = (): Game => {
             } else if (endTile) {
               if (currentDraggedObject.rotation === 0) {
                 for (let i = endTile.x; i >= 0; i--) {
-                  highlightedTiles.push({
+                  validTilesForPlacement.push({
                     loc: new Point(i, endTile.y),
                     valid: false,
                   });
                 }
               } else {
                 for (let i = endTile.y; i >= 0; i--) {
-                  highlightedTiles.push({
+                  validTilesForPlacement.push({
                     loc: new Point(endTile.x, i),
                     valid: false,
                   });
@@ -888,17 +877,35 @@ const game = (): Game => {
         break;
       }
       case "defensiveTurnReview": {
-        currentScene.flushZIndex(zIndexes.tiles, zIndexes.ships, zIndexes.text, zIndexes.appearingText);
+        currentScene.flushZIndex(
+          zIndexes.tiles,
+          zIndexes.ships,
+          zIndexes.text,
+          zIndexes.appearingText,
+          zIndexes.highlightTiles
+        );
         addTileDesignationsToScene(currentScene);
         addFriendlyBoardToScene(currentScene, _boards[playerTurn]);
         redrawAppearingText();
         break;
       }
       case "offensiveTurnReview": {
-        currentScene.flushZIndex(zIndexes.tiles, zIndexes.ships, zIndexes.text, zIndexes.appearingText);
+        currentScene.flushZIndex(
+          zIndexes.tiles,
+          zIndexes.ships,
+          zIndexes.text,
+          zIndexes.appearingText,
+          zIndexes.highlightTiles
+        );
         addTileDesignationsToScene(currentScene);
         addEnemyBoardToScene(currentScene, _boards[playerTurn]);
         redrawAppearingText();
+        break;
+      }
+      case "attack": {
+        currentScene.flushZIndex(zIndexes.tiles, zIndexes.ships, zIndexes.text);
+        addTileDesignationsToScene(currentScene);
+        addEnemyBoardToScene(currentScene, _boards[playerTurn]);
         break;
       }
     }
@@ -916,20 +923,21 @@ const game = (): Game => {
   function transformTextToDisplayableFormat(
     displayArray: TextDisplayArray,
     text: string,
-    root: { start: Point; end: Point }
+    root: { start: Point; end: Point },
+    offset: { x: number; y: number } = { x: 3, y: 3 }
   ) {
     const words = text.split(" ");
-    let x = root.start.x + 3;
-    let y = root.start.y + 3;
+    let x = root.start.x + offset.x;
+    let y = root.start.y + offset.y;
     for (const word of words) {
       if (x + word.length * 8 > root.end.x - 3) {
         y += 9;
-        x = root.start.x + 3;
+        x = root.start.x + offset.x;
       }
       const wordArr = word.split("");
       for (const char of wordArr) {
         if (char === "~") {
-          x = root.start.x + 3;
+          x = root.start.x + offset.x;
           y += 14;
         } else {
           displayArray.push({
@@ -987,27 +995,29 @@ const game = (): Game => {
       for (let y = 0; y < _gameConfig.boardConfig.ySize; y++) {
         const searchPoint = new Point(x, y);
         const drawPoint = new Point(x * 16 + main.boardPosition.start.x + 16, y * 16 + main.boardPosition.start.y + 16);
-        if (board.isOccupied(searchPoint)) {
-          const part: ShipPart = board.getOccupied(searchPoint) as ShipPart;
-          const partParent = part.parent;
-          if (part.damaged) {
-            scene.addImgToScene(zIndexes.tiles, sprites.model.damageTiles[(x + y) % 2], drawPoint);
-          } else {
-            scene.addImgToScene(zIndexes.tiles, sprites.model.waterTiles[(x + y) % 2], drawPoint);
-          }
-          scene.addImgToScene(
-            zIndexes.ships,
-            sprites.model[partParent.shipType][part.partNum],
-            new Point(drawPoint.x, drawPoint.y),
-            {
-              rotation: partParent.orientation === "NS" ? 90 : 0,
-              transformed: partParent.orientation === "NS" ? true : false,
-            }
-          );
+        if (board.getTargeted(searchPoint)) {
+          scene.addImgToScene(zIndexes.tiles, sprites.model.damageTiles[(x + y) % 2], drawPoint);
         } else {
           scene.addImgToScene(zIndexes.tiles, sprites.model.waterTiles[(x + y) % 2], drawPoint);
         }
+        if (board.isOccupied(searchPoint)) {
+          const part: ShipPart = board.getOccupied(searchPoint) as ShipPart;
+          const partParent = part.parent;
+          scene.addImgToScene(zIndexes.ships, sprites.model[partParent.shipType][part.partNum], drawPoint, {
+            rotation: partParent.orientation === "NS" ? 90 : 0,
+            transformed: partParent.orientation === "NS" ? true : false,
+          });
+        }
       }
+    }
+    if (targetedTiles && targetedTiles.length > 0) {
+      targetedTiles.forEach((tile) => {
+        const drawPoint = new Point(
+          tile.x * 16 + main.boardPosition.start.x + 16,
+          tile.y * 16 + main.boardPosition.start.y + 16
+        );
+        scene.addImgToScene(zIndexes.highlightTiles, sprites.model.highlightTiles[(tile.x + tile.y) % 2], drawPoint);
+      });
     }
   }
   function addEnemyBoardToScene(scene: SceneBuilder, board: Board): void {
@@ -1035,6 +1045,15 @@ const game = (): Game => {
         }
       }
     }
+    if (targetedTiles && targetedTiles.length > 0) {
+      targetedTiles.forEach((tile) => {
+        const drawPoint = new Point(
+          tile.x * 16 + main.boardPosition.start.x + 16,
+          tile.y * 16 + main.boardPosition.start.y + 16
+        );
+        scene.addImgToScene(zIndexes.highlightTiles, sprites.model.highlightTiles[(tile.x + tile.y) % 2], drawPoint);
+      });
+    }
   }
   function addDraggableObjectsToScene(scene: SceneBuilder): void {
     draggableObjects.forEach((obj) => {
@@ -1046,8 +1065,8 @@ const game = (): Game => {
       }
     });
   }
-  function addHighlightedTitlesToScene(scene: SceneBuilder): void {
-    highlightedTiles.forEach((tile) => {
+  function addValidForPlacementTilesToScreen(scene: SceneBuilder): void {
+    validTilesForPlacement.forEach((tile) => {
       scene.addImgToScene(
         zIndexes.highlightTiles,
         tile.valid
@@ -1179,6 +1198,159 @@ const game = (): Game => {
   }
   function emptyClickableObjects(): void {
     clickableObjects.splice(0, clickableObjects.length);
+  }
+  function createButton(
+    type: "green" | "red",
+    text: string,
+    loc: Point,
+    clickFunc: () => void,
+    hoverFunc: undefined | (() => void) = undefined
+  ): void {
+    const wordPixelLength = text.length * 8;
+    const spritesBackground = type === "green" ? sprites.model.buttonTiles.green : sprites.model.buttonTiles.red;
+    const imgs: Array<{ img: ImageBitmap; zIndex: number; loc: Point; stretchedWidth?: number }> = [];
+    imgs.push(
+      { img: spritesBackground[0], zIndex: zIndexes.button, loc: new Point(0, 0) },
+      { img: spritesBackground[1], zIndex: zIndexes.button, loc: new Point(1, 0) },
+      { img: spritesBackground[2], zIndex: zIndexes.button, loc: new Point(2, 0) },
+      {
+        img: spritesBackground[3],
+        zIndex: zIndexes.button,
+        loc: new Point(3, 0),
+        stretchedWidth: wordPixelLength - 1,
+      },
+      { img: spritesBackground[4], zIndex: zIndexes.button, loc: new Point(2 + wordPixelLength, 0) },
+      { img: spritesBackground[5], zIndex: zIndexes.button, loc: new Point(3 + wordPixelLength, 0) },
+      { img: spritesBackground[6], zIndex: zIndexes.button, loc: new Point(4 + wordPixelLength, 0) }
+    );
+    text.split("").forEach((char, i) => {
+      imgs.push({
+        img: sprites.text[char as validTextSpriteAccessor],
+        zIndex: zIndexes.button,
+        loc: new Point(3 + i * 8, 4),
+      });
+    });
+    clickableObjects.push({
+      imgs,
+      start: loc,
+      end: new Point(loc.x + 6 + wordPixelLength, loc.y + 16),
+      clickFunc,
+      hoverFunc,
+      clickable: true,
+    });
+  }
+  function createAbilityButtons() {
+    const abilities = ["salvo", "radar", "airstrike", "mines"];
+    abilities.forEach((ability) => {
+      const imgs = [];
+    });
+    function addTextToAbilityButton(
+      text: string,
+      startLoc: Point,
+      imgArray: Array<{ img: ImageBitmap; zIndex: number; loc: Point }>
+    ) {}
+    // ClickableObject = {
+    //   imgs: Array<{ img: ImageBitmap; zIndex: number; loc: Point; stretchedWidth?: number }>;
+    //   start: Point;
+    //   end: Point;
+    //   clickFunc: () => void;
+    //   hoverFunc: (() => void) | undefined;
+    //   clickable: boolean;
+    // };
+    clickableObjects.push({
+      imgs: [
+        { img: sprites.model.abilities[0], zIndex: zIndexes.button, loc: new Point(3, 15) },
+        { img: sprites.text["S"], zIndex: zIndexes.button, loc: new Point(24, 13) },
+        { img: sprites.text["A"], zIndex: zIndexes.button, loc: new Point(32, 13) },
+        { img: sprites.text["L"], zIndex: zIndexes.button, loc: new Point(40, 13) },
+        { img: sprites.text["V"], zIndex: zIndexes.button, loc: new Point(48, 13) },
+        { img: sprites.text["O"], zIndex: zIndexes.button, loc: new Point(56, 13) },
+
+        { img: sprites.text["C"], zIndex: zIndexes.button, loc: new Point(24, 24) },
+        { img: sprites.text["O"], zIndex: zIndexes.button, loc: new Point(32, 24) },
+        { img: sprites.text["O"], zIndex: zIndexes.button, loc: new Point(40, 24) },
+        { img: sprites.text["L"], zIndex: zIndexes.button, loc: new Point(48, 24) },
+        { img: sprites.text["D"], zIndex: zIndexes.button, loc: new Point(56, 24) },
+        { img: sprites.text["O"], zIndex: zIndexes.button, loc: new Point(64, 24) },
+        { img: sprites.text["W"], zIndex: zIndexes.button, loc: new Point(72, 24) },
+        { img: sprites.text["N"], zIndex: zIndexes.button, loc: new Point(80, 24) },
+        { img: sprites.text[":"], zIndex: zIndexes.button, loc: new Point(88, 24) },
+        { img: sprites.text["4"], zIndex: zIndexes.button, loc: new Point(96, 24) },
+      ],
+      start: new Point(canvas.views.drawer.sections[0].start.x, canvas.views.drawer.sections[0].start.y),
+      end: new Point(canvas.views.drawer.sections[0].start.x + 16, canvas.views.drawer.sections[0].start.y + 16),
+      clickFunc: () => {},
+      hoverFunc: undefined,
+      clickable: true,
+    });
+    clickableObjects.push({
+      imgs: [
+        { img: sprites.model.abilities[1], zIndex: zIndexes.button, loc: new Point(3, 39) },
+        { img: sprites.text["A"], zIndex: zIndexes.button, loc: new Point(24, 37) },
+        { img: sprites.text["I"], zIndex: zIndexes.button, loc: new Point(32, 37) },
+        { img: sprites.text["R"], zIndex: zIndexes.button, loc: new Point(40, 37) },
+        { img: sprites.text["S"], zIndex: zIndexes.button, loc: new Point(48, 37) },
+        { img: sprites.text["T"], zIndex: zIndexes.button, loc: new Point(56, 37) },
+        { img: sprites.text["R"], zIndex: zIndexes.button, loc: new Point(64, 37) },
+        { img: sprites.text["I"], zIndex: zIndexes.button, loc: new Point(72, 37) },
+        { img: sprites.text["K"], zIndex: zIndexes.button, loc: new Point(80, 37) },
+        { img: sprites.text["E"], zIndex: zIndexes.button, loc: new Point(88, 37) },
+
+        { img: sprites.text["C"], zIndex: zIndexes.button, loc: new Point(24, 48) },
+        { img: sprites.text["O"], zIndex: zIndexes.button, loc: new Point(32, 48) },
+        { img: sprites.text["O"], zIndex: zIndexes.button, loc: new Point(40, 48) },
+        { img: sprites.text["L"], zIndex: zIndexes.button, loc: new Point(48, 48) },
+        { img: sprites.text["D"], zIndex: zIndexes.button, loc: new Point(56, 48) },
+        { img: sprites.text["O"], zIndex: zIndexes.button, loc: new Point(64, 48) },
+        { img: sprites.text["W"], zIndex: zIndexes.button, loc: new Point(72, 48) },
+        { img: sprites.text["N"], zIndex: zIndexes.button, loc: new Point(80, 48) },
+        { img: sprites.text[":"], zIndex: zIndexes.button, loc: new Point(88, 48) },
+        { img: sprites.text["2"], zIndex: zIndexes.button, loc: new Point(96, 48) },
+      ],
+      start: new Point(canvas.views.drawer.sections[0].start.x, canvas.views.drawer.sections[0].start.y),
+      end: new Point(canvas.views.drawer.sections[0].start.x + 16, canvas.views.drawer.sections[0].start.y + 16),
+      clickFunc: () => {},
+      hoverFunc: undefined,
+      clickable: true,
+    });
+    clickableObjects.push({
+      imgs: [
+        { img: sprites.model.abilities[3], zIndex: zIndexes.button, loc: new Point(3, 61) },
+        { img: sprites.text["M"], zIndex: zIndexes.button, loc: new Point(24, 65) },
+        { img: sprites.text["I"], zIndex: zIndexes.button, loc: new Point(32, 65) },
+        { img: sprites.text["N"], zIndex: zIndexes.button, loc: new Point(40, 65) },
+        { img: sprites.text["E"], zIndex: zIndexes.button, loc: new Point(48, 65) },
+        { img: sprites.text["S"], zIndex: zIndexes.button, loc: new Point(56, 65) },
+      ],
+      start: new Point(canvas.views.drawer.sections[0].start.x, canvas.views.drawer.sections[0].start.y),
+      end: new Point(canvas.views.drawer.sections[0].start.x + 16, canvas.views.drawer.sections[0].start.y + 16),
+      clickFunc: () => {},
+      hoverFunc: undefined,
+      clickable: true,
+    });
+    clickableObjects.push({
+      imgs: [
+        { img: sprites.model.abilities[2], zIndex: zIndexes.button, loc: new Point(3, 85) },
+        { img: sprites.text["R"], zIndex: zIndexes.button, loc: new Point(24, 90) },
+        { img: sprites.text["A"], zIndex: zIndexes.button, loc: new Point(32, 90) },
+        { img: sprites.text["D"], zIndex: zIndexes.button, loc: new Point(40, 90) },
+        { img: sprites.text["A"], zIndex: zIndexes.button, loc: new Point(48, 90) },
+        { img: sprites.text["R"], zIndex: zIndexes.button, loc: new Point(56, 90) },
+      ],
+      start: new Point(canvas.views.drawer.sections[0].start.x, canvas.views.drawer.sections[0].start.y),
+      end: new Point(canvas.views.drawer.sections[0].start.x + 16, canvas.views.drawer.sections[0].start.y + 16),
+      clickFunc: () => {},
+      hoverFunc: undefined,
+      clickable: true,
+    });
+
+    function createAbilityButton(
+      abilityName: AttackTypes,
+      abilityCooldownText: string,
+      loc: Point,
+      clickFunc: () => void,
+      hoverFunc: undefined | (() => void) = undefined
+    ) {}
   }
   ///SCENE SPECIFIC
   function readyTextForPlayerSwapScene() {
