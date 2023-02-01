@@ -63,6 +63,7 @@ type MouseInfo = {
   isOnScreen: boolean;
   currentLoc: Point;
   isHoveringOverDraggable: boolean;
+  isHoveringOverAttackButton: boolean;
   isHoldingDraggable: boolean;
   isHoveringOverClickable: boolean;
   holdingDraggableOffsets: Point;
@@ -145,17 +146,17 @@ const game = (): Game => {
     new Board(_gameConfig.boardConfig.xSize, _gameConfig.boardConfig.ySize),
     new Board(_gameConfig.boardConfig.xSize, _gameConfig.boardConfig.ySize),
   ];
-  _boards[0].addShip(new Point(0, 0), new Ship("carrier", "EW"));
-  _boards[0].addShip(new Point(0, 1), new Ship("battleship", "EW"));
-  _boards[0].addShip(new Point(0, 2), new Ship("cruiser", "EW"));
-  _boards[0].addShip(new Point(0, 3), new Ship("submarine", "EW"));
-  _boards[0].addShip(new Point(0, 4), new Ship("destroyer", "EW"));
+  // _boards[0].addShip(new Point(0, 0), new Ship("carrier", "EW"));
+  // _boards[0].addShip(new Point(0, 1), new Ship("battleship", "EW"));
+  // _boards[0].addShip(new Point(0, 2), new Ship("cruiser", "EW"));
+  // _boards[0].addShip(new Point(0, 3), new Ship("submarine", "EW"));
+  // _boards[0].addShip(new Point(0, 4), new Ship("destroyer", "EW"));
 
-  _boards[1].addShip(new Point(3, 0), new Ship("carrier", "EW"));
-  _boards[1].addShip(new Point(3, 1), new Ship("battleship", "EW"));
-  _boards[1].addShip(new Point(3, 2), new Ship("cruiser", "EW"));
-  _boards[1].addShip(new Point(3, 3), new Ship("submarine", "EW"));
-  _boards[1].addShip(new Point(3, 4), new Ship("destroyer", "EW"));
+  // _boards[1].addShip(new Point(3, 0), new Ship("carrier", "EW"));
+  // _boards[1].addShip(new Point(3, 1), new Ship("battleship", "EW"));
+  // _boards[1].addShip(new Point(3, 2), new Ship("cruiser", "EW"));
+  // _boards[1].addShip(new Point(3, 3), new Ship("submarine", "EW"));
+  // _boards[1].addShip(new Point(3, 4), new Ship("destroyer", "EW"));
   // DECLARATIONS(Start)
   const clickableObjects: Array<ClickableObject> = [];
   const draggableObjects: Array<DraggableObject> = [];
@@ -179,6 +180,7 @@ const game = (): Game => {
   let opponent: "human" | "computer";
   const mouse: MouseInfo = {
     isOnScreen: false,
+    isHoveringOverAttackButton: false,
     isHoveringOverClickable: false,
     isHoveringOverDraggable: false,
     isHoldingDraggable: false,
@@ -297,6 +299,7 @@ const game = (): Game => {
       }
       case "attack": {
         currentScene.flushZIndex(zIndexes.reticule);
+        addAppearingTextToScene(currentScene);
         drawMouse();
         break;
       }
@@ -361,7 +364,7 @@ const game = (): Game => {
             } else {
               playerTurn = 0;
               setState("playerSwapScreen");
-              nextState = "defensiveTurnReview";
+              nextState = "offensiveTurnReview";
             }
             break;
           }
@@ -745,21 +748,19 @@ const game = (): Game => {
       case "attack": {
         const checkPoint = new Point(trueX, trueY);
         const clickableResults = isHoveringOverClickable(checkPoint);
-        if (clickableResults.found) {
-          if (clickableResults.clickableObj) {
-            if (clickableResults.clickableObj.clickable) {
-              mouse.isHoveringOverClickable = true;
-              if (clickableResults.clickableObj.hoverFunc) {
-                clickableResults.clickableObj.hoverFunc();
-              }
-            } else {
-              mouse.isHoveringOverClickable = false;
-            }
-          } else {
-            mouse.isHoveringOverClickable = false;
+        if (clickableResults.found && clickableResults.clickableObj && clickableResults.clickableObj.clickable) {
+          mouse.isHoveringOverClickable = true;
+          if (clickableResults.clickableObj.hoverFunc && !mouse.isHoveringOverAttackButton) {
+            mouse.isHoveringOverAttackButton = true;
+            clickableResults.clickableObj.hoverFunc();
           }
         } else {
           mouse.isHoveringOverClickable = false;
+          if (mouse.isHoveringOverAttackButton) {
+            mouse.isHoveringOverAttackButton = false;
+            resetAppearingText();
+            currentScene.flushZIndex(zIndexes.appearingText);
+          }
         }
         break;
       }
@@ -1316,21 +1317,38 @@ const game = (): Game => {
   }
   function hoverAbilityButton(ability: AttackTypes) {
     //!
+    resetAppearingText();
     switch (ability) {
       case "salvo": {
-        //
+        transformTextToDisplayableFormat(
+          appearingTextToDisplay,
+          "LAUNCH 1 ATTACK AT THE ENEMY FOR EACH REMAINING SHIP IN YOUR FLEET ~NO COOLDOWN",
+          canvas.views.drawer.sections[2]
+        );
         break;
       }
       case "radar": {
-        //
+        transformTextToDisplayableFormat(
+          appearingTextToDisplay,
+          "REQUIRES SUBMARINE: ~GET A REPORT ON HOW MANY SHIP PIECES EXIST WITHIN UP TO 10 CHOSEN TILES ~NO COOLDOWN",
+          canvas.views.drawer.sections[2]
+        );
         break;
       }
       case "airstrike": {
-        //
+        transformTextToDisplayableFormat(
+          appearingTextToDisplay,
+          "REQUIRES CARRIER: ~START A BOMBING RUN ALONG THE PATH OF YOUR CARRIER (6 TILES). ~5 TURN COOLDOWN",
+          canvas.views.drawer.sections[2]
+        );
         break;
       }
       case "mines": {
-        //
+        transformTextToDisplayableFormat(
+          appearingTextToDisplay,
+          "REQUIRES CRUISER: ~DENONATE A LARGE BLAST IN A SINGLE AREA (5 TILES). ~3 TURN COOLDOWN",
+          canvas.views.drawer.sections[2]
+        );
         break;
       }
     }
