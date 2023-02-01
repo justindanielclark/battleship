@@ -1,4 +1,4 @@
-import Point from "./data_storage/Point";
+import Point from "../data_storage/Point";
 
 type drawableObj = {
   img: ImageBitmap;

@@ -1,7 +1,7 @@
 import "./styles/styles.css"; //required to load TailindCSS
-import Canvas from "./logic/canvas";
+import Canvas from "./logic/display/canvas";
 import Game from "./logic/game";
-import Renderer from "./logic/renderer";
+import Renderer from "./logic/display/renderer";
 import Point from "./logic/data_storage/Point";
 
 const { body } = document;

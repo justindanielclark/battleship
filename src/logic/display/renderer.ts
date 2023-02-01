@@ -1,5 +1,5 @@
-import Point from "./data_storage/Point";
-import { CanvasConfig, Game } from "./game";
+import Point from "../data_storage/Point";
+import { CanvasConfig } from "../game";
 import { Scene } from "./sceneBuilder";
 const renderer = (ctx: CanvasRenderingContext2D, canvasConfig: CanvasConfig) => {
   let _lastScene: Scene;
@@ -10,7 +10,7 @@ const renderer = (ctx: CanvasRenderingContext2D, canvasConfig: CanvasConfig) => 
     _clearCanvas();
     ctx.imageSmoothingEnabled = false;
 
-    // //SECTION1
+    //SECTION1
     // ctx.fillStyle = "rgba(45,25,25,1)";
     // ctx.fillRect(
     //   drawer.sections[0].start.x * scale,
