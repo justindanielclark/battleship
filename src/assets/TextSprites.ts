@@ -1,7 +1,7 @@
 import SpriteSheet from "./Spritesheet-Text.png";
 
-const textSprites = (): TextSpritesLoaded => {
-  const Sprites: TextSprites = {
+const textSprites = (): TextSprites => {
+  const Sprites: Partial<TextSprites> = {
     loaded: false,
   };
   const textSpriteSheetImage = new Image();
@@ -158,7 +158,7 @@ const textSprites = (): TextSpritesLoaded => {
       Sprites.loaded = true;
     });
   });
-  return Sprites as TextSpritesLoaded;
+  return Sprites as TextSprites;
 };
 
 export { textSprites };

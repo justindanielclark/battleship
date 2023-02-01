@@ -1,7 +1,7 @@
 import SpriteSheet from "./Spritesheet.png";
 
-const modelSprites = (): ModelSpritesLoaded => {
-  const Sprites: ModelSprites = {
+const modelSprites = (): ModelSprites => {
+  const Sprites: Partial<ModelSprites> = {
     loaded: false,
   };
   const SpriteSheetImage = new Image();
@@ -80,10 +80,10 @@ const modelSprites = (): ModelSpritesLoaded => {
       createImageBitmap(SpriteSheetImage, 80, 48, 16, 16),
       createImageBitmap(SpriteSheetImage, 80, 64, 16, 16),
       //Abilities
-      createImageBitmap(SpriteSheetImage, 64, 16, 16, 16),
-      createImageBitmap(SpriteSheetImage, 80, 0, 16, 16),
-      createImageBitmap(SpriteSheetImage, 80, 16, 16, 16),
-      createImageBitmap(SpriteSheetImage, 80, 32, 16, 16),
+      createImageBitmap(SpriteSheetImage, 64, 16, 16, 16), // Salvo
+      createImageBitmap(SpriteSheetImage, 80, 16, 16, 16), // Radar
+      createImageBitmap(SpriteSheetImage, 80, 0, 16, 16), // Airstrike
+      createImageBitmap(SpriteSheetImage, 80, 32, 16, 16), // Mines
     ]).then((sprites) => {
       Sprites.carrier = [sprites[0], sprites[1], sprites[2], sprites[3], sprites[4], sprites[5]];
       Sprites.battleship = [sprites[6], sprites[7], sprites[8], sprites[9], sprites[10]];
@@ -113,7 +113,7 @@ const modelSprites = (): ModelSpritesLoaded => {
       Sprites.loaded = true;
     });
   });
-  return Sprites as ModelSpritesLoaded;
+  return Sprites as ModelSprites;
 };
 
 export { modelSprites };
