@@ -2,9 +2,13 @@ import Board from "./data_storage/Board";
 import Point from "./data_storage/Point";
 import modelSprites from "../assets/ModelSprites";
 import textSprites from "../assets/TextSprites";
-import { sceneBuilder, Scene, SceneBuilder } from "./sceneBuilder";
+import { sceneBuilder, Scene, SceneBuilder } from "./display/sceneBuilder";
 import Ship, { Orientation, ShipPart, ShipType } from "./data_storage/Ship";
 type AttackTypes = "salvo" | "airstrike" | "radar" | "mines";
+type AttacksWithCooldowns = Extract<AttackTypes, "airstrike" | "mines">;
+type Cooldown = {
+  [key in AttacksWithCooldowns]: number;
+};
 type Turn = {
   attackType: AttackTypes;
   targetedTiles: Array<Point>;
@@ -19,8 +23,11 @@ type GameState =
   | "defensiveTurnReview"
   | "offensiveTurnReview"
   | "attack"
+  | "attack-salvo"
+  | "attack-airstrike"
+  | "attack-radar"
+  | "attack-mines"
   | "end";
-type PlayerCooldowns = {};
 type BoardConfig = {
   xSize: number;
   ySize: number;
@@ -52,7 +59,7 @@ type CanvasConfig = {
   };
   scale: number;
 };
-type MouseConfig = {
+type MouseInfo = {
   isOnScreen: boolean;
   currentLoc: Point;
   isHoveringOverDraggable: boolean;
@@ -170,7 +177,7 @@ const game = (): Game => {
   let nextState: GameState;
   let playerTurn = 0;
   let opponent: "human" | "computer";
-  const mouse: MouseConfig = {
+  const mouse: MouseInfo = {
     isOnScreen: false,
     isHoveringOverClickable: false,
     isHoveringOverDraggable: false,
@@ -226,17 +233,11 @@ const game = (): Game => {
       // },
     ],
   ];
-  const Cooldowns = [
-    {
-      airstrike: 0,
-      mines: 0,
-    },
-    {
-      airstrike: 0,
-      mines: 0,
-    },
+  const Cooldowns: Array<Cooldown> = [
+    { airstrike: 3, mines: 0 },
+    { airstrike: 0, mines: 0 },
   ];
-  const CooldownLimits = {
+  const CooldownLimits: Cooldown = {
     airstrike: 5,
     mines: 4,
   };
@@ -279,60 +280,56 @@ const game = (): Game => {
       }
       case "playerSwapScreen": {
         currentScene.flushZIndex(zIndexes.reticule);
-        // Reticule
-        if (mouse.isOnScreen) {
-          currentScene.addImgToScene(
-            zIndexes.reticule,
-            sprites.model.reticule[0],
-            new Point(mouse.currentLoc.x - 8, mouse.currentLoc.y - 8)
-          );
-        }
+        drawMouse();
         break;
       }
       case "defensiveTurnReview": {
         currentScene.flushZIndex(zIndexes.reticule);
         addAppearingTextToScene(currentScene);
-        // Reticule
-        if (mouse.isOnScreen) {
-          if (mouse.isHoveringOverClickable) {
-            currentScene.addImgToScene(
-              zIndexes.reticule,
-              sprites.model.reticule[1],
-              new Point(mouse.currentLoc.x - 4, mouse.currentLoc.y)
-            );
-          } else {
-            currentScene.addImgToScene(
-              zIndexes.reticule,
-              sprites.model.reticule[0],
-              new Point(mouse.currentLoc.x - 8, mouse.currentLoc.y - 8)
-            );
-          }
-        }
+        drawMouse();
         break;
       }
       case "offensiveTurnReview": {
         currentScene.flushZIndex(zIndexes.reticule);
         addAppearingTextToScene(currentScene);
-        if (mouse.isOnScreen) {
-          if (mouse.isHoveringOverClickable) {
-            currentScene.addImgToScene(
-              zIndexes.reticule,
-              sprites.model.reticule[1],
-              new Point(mouse.currentLoc.x - 4, mouse.currentLoc.y)
-            );
-          } else {
-            currentScene.addImgToScene(
-              zIndexes.reticule,
-              sprites.model.reticule[0],
-              new Point(mouse.currentLoc.x - 8, mouse.currentLoc.y - 8)
-            );
-          }
-        }
+        drawMouse();
         break;
       }
       case "attack": {
         currentScene.flushZIndex(zIndexes.reticule);
-        if (mouse.isOnScreen) {
+        drawMouse();
+        break;
+      }
+      case "attack-salvo": {
+        currentScene.flushZIndex(zIndexes.reticule);
+        drawMouse();
+        break;
+      }
+      case "attack-radar": {
+        currentScene.flushZIndex(zIndexes.reticule);
+        drawMouse();
+        break;
+      }
+      case "attack-airstrike": {
+        currentScene.flushZIndex(zIndexes.reticule);
+        drawMouse();
+        break;
+      }
+      case "attack-mines": {
+        currentScene.flushZIndex(zIndexes.reticule);
+        drawMouse();
+        break;
+      }
+    }
+    function drawMouse() {
+      if (mouse.isOnScreen) {
+        if (mouse.isHoveringOverClickable) {
+          currentScene.addImgToScene(
+            zIndexes.reticule,
+            sprites.model.reticule[1],
+            new Point(mouse.currentLoc.x - 4, mouse.currentLoc.y)
+          );
+        } else {
           currentScene.addImgToScene(
             zIndexes.reticule,
             sprites.model.reticule[0],
@@ -457,7 +454,7 @@ const game = (): Game => {
         break;
       }
       case "attack": {
-        transformTextToDisplayableFormat(textToDisplay, "CHOOSE ATTACK:", canvas.views.drawer.sections[0]);
+        transformTextToDisplayableFormat(textToDisplay, "CHOOSE AN ATTACK:", canvas.views.drawer.sections[0]);
         addTileDesignationsToScene(currentScene);
         addEnemyBoardToScene(currentScene, _boards[(playerTurn + 1) % 2]);
         createAbilityButtons();
@@ -521,56 +518,57 @@ const game = (): Game => {
     const trueX = (mouseClickLocation.x - canvasData.left) / scale;
     const trueY = (mouseClickLocation.y - canvasData.top) / scale;
     const clickedPoint = new Point(trueX, trueY);
-    switch (state) {
-      case "settingPieces": {
-        if (mouse.isHoveringOverDraggable) {
-          currentDraggedObject = isHoveringOverDraggable(clickedPoint).draggableObj;
-          if (currentDraggedObject) {
-            mouse.holdingDraggableOffsets = new Point(
-              trueX - currentDraggedObject.start.x,
-              trueY - currentDraggedObject.start.y
-            );
+    if (!transitioning) {
+      switch (state) {
+        case "settingPieces": {
+          if (mouse.isHoveringOverDraggable) {
+            currentDraggedObject = isHoveringOverDraggable(clickedPoint).draggableObj;
+            if (currentDraggedObject) {
+              mouse.holdingDraggableOffsets = new Point(
+                trueX - currentDraggedObject.start.x,
+                trueY - currentDraggedObject.start.y
+              );
+            }
+            mouse.isHoveringOverDraggable = false;
+            mouse.isHoldingDraggable = true;
+          } else {
+            ifHoveringOverClickableExecuteClickableFunc();
           }
-          mouse.isHoveringOverDraggable = false;
-          mouse.isHoldingDraggable = true;
-        } else if (mouse.isHoveringOverClickable) {
-          const clickedObj = isHoveringOverClickable(clickedPoint).clickableObj;
-          if (clickedObj) {
-            clickedObj.clickFunc();
+          break;
+        }
+        case "playerSwapScreen": {
+          if (!transitioning) {
+            transitioning = true;
           }
+          break;
         }
-        break;
-      }
-      case "playerSwapScreen": {
-        if (!transitioning) {
-          transitioning = true;
+        case "defensiveTurnReview": {
+          ifHoveringOverClickableExecuteClickableFunc();
+          break;
         }
-        break;
-      }
-      case "defensiveTurnReview": {
-        if (mouse.isHoveringOverClickable) {
-          const clickedObj = isHoveringOverClickable(clickedPoint).clickableObj;
-          if (clickedObj) {
-            clickedObj.clickFunc();
+        case "offensiveTurnReview": {
+          ifHoveringOverClickableExecuteClickableFunc();
+          break;
+        }
+        case "attack": {
+          ifHoveringOverClickableExecuteClickableFunc();
+          break;
+        }
+        case "attack-salvo": {
+          if (isWithinBoardTiles(new Point(trueX, trueY))) {
+            const clickLoc = getTileAtLocation(new Point(trueX, trueY));
+            //todo
           }
+          break;
         }
-        break;
       }
-      case "offensiveTurnReview": {
-        if (mouse.isHoveringOverClickable) {
-          const clickedObj = isHoveringOverClickable(clickedPoint).clickableObj;
-          if (clickedObj) {
-            clickedObj.clickFunc();
-          }
+    }
+    function ifHoveringOverClickableExecuteClickableFunc() {
+      if (mouse.isHoveringOverClickable) {
+        const clickedObj = isHoveringOverClickable(clickedPoint).clickableObj;
+        if (clickedObj) {
+          clickedObj.clickFunc();
         }
-        break;
-      }
-      case "attack": {
-        if (isWithinBoardTiles(new Point(trueX, trueY))) {
-          const clickLoc = getTileAtLocation(new Point(trueX, trueY));
-          //todo
-        }
-        break;
       }
     }
   }
@@ -742,6 +740,27 @@ const game = (): Game => {
         const checkPoint = new Point(trueX, trueY);
         const clickableResults = isHoveringOverClickable(checkPoint);
         mouse.isHoveringOverClickable = clickableResults.found;
+        break;
+      }
+      case "attack": {
+        const checkPoint = new Point(trueX, trueY);
+        const clickableResults = isHoveringOverClickable(checkPoint);
+        if (clickableResults.found) {
+          if (clickableResults.clickableObj) {
+            if (clickableResults.clickableObj.clickable) {
+              mouse.isHoveringOverClickable = true;
+              if (clickableResults.clickableObj.hoverFunc) {
+                clickableResults.clickableObj.hoverFunc();
+              }
+            } else {
+              mouse.isHoveringOverClickable = false;
+            }
+          } else {
+            mouse.isHoveringOverClickable = false;
+          }
+        } else {
+          mouse.isHoveringOverClickable = false;
+        }
         break;
       }
     }
@@ -1240,117 +1259,101 @@ const game = (): Game => {
     });
   }
   function createAbilityButtons() {
-    const abilities = ["salvo", "radar", "airstrike", "mines"];
-    abilities.forEach((ability) => {
-      const imgs = [];
-    });
-    function addTextToAbilityButton(
+    const drawPointStart = canvas.views.drawer.sections[0].start;
+    const drawPointEnd = canvas.views.drawer.sections[0].end;
+    const abilities: Array<AttackTypes> = ["salvo", "radar", "airstrike", "mines"];
+    for (let i = 0; i < abilities.length; i++) {
+      const imgs: Array<{ img: ImageBitmap; zIndex: number; loc: Point }> = [];
+      const start = new Point(drawPointStart.x, drawPointStart.y + 24 + 24 * i + 4);
+      const end = new Point(drawPointEnd.x, drawPointStart.y + 24 + 24 * i + 20);
+      let clickable = true;
+      imgs.push({
+        img: sprites.model.abilities[i],
+        zIndex: zIndexes.button,
+        loc: new Point(3, 1),
+      });
+      if (abilities[i] in Cooldowns[playerTurn]) {
+        const key = abilities[i] as AttacksWithCooldowns;
+        const cd: number = Cooldowns[playerTurn][key];
+        if (cd > 0) {
+          generateText(abilities[i], new Point(22, -1), imgs);
+          generateText(`Cooldown:${cd}`, new Point(22, 9), imgs);
+          clickable = false;
+        } else {
+          generateText(abilities[i], new Point(22, 4), imgs);
+        }
+      } else {
+        generateText(abilities[i], new Point(22, 4), imgs);
+      }
+      clickableObjects.push({
+        imgs,
+        start,
+        end,
+        clickable,
+        clickFunc: () => {
+          clickAbilityButton(abilities[i]);
+        },
+        hoverFunc: () => {
+          hoverAbilityButton(abilities[i]);
+        },
+      });
+    }
+    function generateText(
       text: string,
-      startLoc: Point,
-      imgArray: Array<{ img: ImageBitmap; zIndex: number; loc: Point }>
-    ) {}
-    // ClickableObject = {
-    //   imgs: Array<{ img: ImageBitmap; zIndex: number; loc: Point; stretchedWidth?: number }>;
-    //   start: Point;
-    //   end: Point;
-    //   clickFunc: () => void;
-    //   hoverFunc: (() => void) | undefined;
-    //   clickable: boolean;
-    // };
-    clickableObjects.push({
-      imgs: [
-        { img: sprites.model.abilities[0], zIndex: zIndexes.button, loc: new Point(3, 15) },
-        { img: sprites.text["S"], zIndex: zIndexes.button, loc: new Point(24, 13) },
-        { img: sprites.text["A"], zIndex: zIndexes.button, loc: new Point(32, 13) },
-        { img: sprites.text["L"], zIndex: zIndexes.button, loc: new Point(40, 13) },
-        { img: sprites.text["V"], zIndex: zIndexes.button, loc: new Point(48, 13) },
-        { img: sprites.text["O"], zIndex: zIndexes.button, loc: new Point(56, 13) },
-
-        { img: sprites.text["C"], zIndex: zIndexes.button, loc: new Point(24, 24) },
-        { img: sprites.text["O"], zIndex: zIndexes.button, loc: new Point(32, 24) },
-        { img: sprites.text["O"], zIndex: zIndexes.button, loc: new Point(40, 24) },
-        { img: sprites.text["L"], zIndex: zIndexes.button, loc: new Point(48, 24) },
-        { img: sprites.text["D"], zIndex: zIndexes.button, loc: new Point(56, 24) },
-        { img: sprites.text["O"], zIndex: zIndexes.button, loc: new Point(64, 24) },
-        { img: sprites.text["W"], zIndex: zIndexes.button, loc: new Point(72, 24) },
-        { img: sprites.text["N"], zIndex: zIndexes.button, loc: new Point(80, 24) },
-        { img: sprites.text[":"], zIndex: zIndexes.button, loc: new Point(88, 24) },
-        { img: sprites.text["4"], zIndex: zIndexes.button, loc: new Point(96, 24) },
-      ],
-      start: new Point(canvas.views.drawer.sections[0].start.x, canvas.views.drawer.sections[0].start.y),
-      end: new Point(canvas.views.drawer.sections[0].start.x + 16, canvas.views.drawer.sections[0].start.y + 16),
-      clickFunc: () => {},
-      hoverFunc: undefined,
-      clickable: true,
-    });
-    clickableObjects.push({
-      imgs: [
-        { img: sprites.model.abilities[1], zIndex: zIndexes.button, loc: new Point(3, 39) },
-        { img: sprites.text["A"], zIndex: zIndexes.button, loc: new Point(24, 37) },
-        { img: sprites.text["I"], zIndex: zIndexes.button, loc: new Point(32, 37) },
-        { img: sprites.text["R"], zIndex: zIndexes.button, loc: new Point(40, 37) },
-        { img: sprites.text["S"], zIndex: zIndexes.button, loc: new Point(48, 37) },
-        { img: sprites.text["T"], zIndex: zIndexes.button, loc: new Point(56, 37) },
-        { img: sprites.text["R"], zIndex: zIndexes.button, loc: new Point(64, 37) },
-        { img: sprites.text["I"], zIndex: zIndexes.button, loc: new Point(72, 37) },
-        { img: sprites.text["K"], zIndex: zIndexes.button, loc: new Point(80, 37) },
-        { img: sprites.text["E"], zIndex: zIndexes.button, loc: new Point(88, 37) },
-
-        { img: sprites.text["C"], zIndex: zIndexes.button, loc: new Point(24, 48) },
-        { img: sprites.text["O"], zIndex: zIndexes.button, loc: new Point(32, 48) },
-        { img: sprites.text["O"], zIndex: zIndexes.button, loc: new Point(40, 48) },
-        { img: sprites.text["L"], zIndex: zIndexes.button, loc: new Point(48, 48) },
-        { img: sprites.text["D"], zIndex: zIndexes.button, loc: new Point(56, 48) },
-        { img: sprites.text["O"], zIndex: zIndexes.button, loc: new Point(64, 48) },
-        { img: sprites.text["W"], zIndex: zIndexes.button, loc: new Point(72, 48) },
-        { img: sprites.text["N"], zIndex: zIndexes.button, loc: new Point(80, 48) },
-        { img: sprites.text[":"], zIndex: zIndexes.button, loc: new Point(88, 48) },
-        { img: sprites.text["2"], zIndex: zIndexes.button, loc: new Point(96, 48) },
-      ],
-      start: new Point(canvas.views.drawer.sections[0].start.x, canvas.views.drawer.sections[0].start.y),
-      end: new Point(canvas.views.drawer.sections[0].start.x + 16, canvas.views.drawer.sections[0].start.y + 16),
-      clickFunc: () => {},
-      hoverFunc: undefined,
-      clickable: true,
-    });
-    clickableObjects.push({
-      imgs: [
-        { img: sprites.model.abilities[3], zIndex: zIndexes.button, loc: new Point(3, 61) },
-        { img: sprites.text["M"], zIndex: zIndexes.button, loc: new Point(24, 65) },
-        { img: sprites.text["I"], zIndex: zIndexes.button, loc: new Point(32, 65) },
-        { img: sprites.text["N"], zIndex: zIndexes.button, loc: new Point(40, 65) },
-        { img: sprites.text["E"], zIndex: zIndexes.button, loc: new Point(48, 65) },
-        { img: sprites.text["S"], zIndex: zIndexes.button, loc: new Point(56, 65) },
-      ],
-      start: new Point(canvas.views.drawer.sections[0].start.x, canvas.views.drawer.sections[0].start.y),
-      end: new Point(canvas.views.drawer.sections[0].start.x + 16, canvas.views.drawer.sections[0].start.y + 16),
-      clickFunc: () => {},
-      hoverFunc: undefined,
-      clickable: true,
-    });
-    clickableObjects.push({
-      imgs: [
-        { img: sprites.model.abilities[2], zIndex: zIndexes.button, loc: new Point(3, 85) },
-        { img: sprites.text["R"], zIndex: zIndexes.button, loc: new Point(24, 90) },
-        { img: sprites.text["A"], zIndex: zIndexes.button, loc: new Point(32, 90) },
-        { img: sprites.text["D"], zIndex: zIndexes.button, loc: new Point(40, 90) },
-        { img: sprites.text["A"], zIndex: zIndexes.button, loc: new Point(48, 90) },
-        { img: sprites.text["R"], zIndex: zIndexes.button, loc: new Point(56, 90) },
-      ],
-      start: new Point(canvas.views.drawer.sections[0].start.x, canvas.views.drawer.sections[0].start.y),
-      end: new Point(canvas.views.drawer.sections[0].start.x + 16, canvas.views.drawer.sections[0].start.y + 16),
-      clickFunc: () => {},
-      hoverFunc: undefined,
-      clickable: true,
-    });
-
-    function createAbilityButton(
-      abilityName: AttackTypes,
-      abilityCooldownText: string,
-      loc: Point,
-      clickFunc: () => void,
-      hoverFunc: undefined | (() => void) = undefined
-    ) {}
+      drawStart: Point,
+      imgs: Array<{ img: ImageBitmap; zIndex: number; loc: Point }>
+    ) {
+      let x = drawStart.x;
+      text.split("").forEach((char) => {
+        imgs.push({
+          img: sprites.text[char as validTextSpriteAccessor],
+          zIndex: zIndexes.button,
+          loc: new Point(x, drawStart.y),
+        });
+        x += 8;
+      });
+    }
+  }
+  function hoverAbilityButton(ability: AttackTypes) {
+    //!
+    switch (ability) {
+      case "salvo": {
+        //
+        break;
+      }
+      case "radar": {
+        //
+        break;
+      }
+      case "airstrike": {
+        //
+        break;
+      }
+      case "mines": {
+        //
+        break;
+      }
+    }
+  }
+  function clickAbilityButton(ability: AttackTypes) {
+    switch (ability) {
+      case "salvo": {
+        setState("attack-salvo");
+        break;
+      }
+      case "radar": {
+        setState("attack-radar");
+        break;
+      }
+      case "airstrike": {
+        setState("attack-airstrike");
+        break;
+      }
+      case "mines": {
+        setState("attack-mines");
+        break;
+      }
+    }
   }
   ///SCENE SPECIFIC
   function readyTextForPlayerSwapScene() {
