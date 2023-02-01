@@ -1,4 +1,4 @@
-import { Ship, ShipPart } from "./Ship";
+import { Ship, ShipPart, ShipType } from "./Ship";
 import Tile from "./Tile";
 import Point from "./Point";
 
@@ -85,6 +85,28 @@ class Board {
       }
     });
     return !(deadShips === this._fleet.length);
+  }
+  isShipAlive(shipName: ShipType): boolean {
+    let foundShip: Ship | undefined;
+    this._fleet.forEach((ship) => {
+      if (ship.shipType === shipName) {
+        foundShip = ship;
+      }
+    });
+    if (foundShip) {
+      return foundShip.isAfloat();
+    } else {
+      return false;
+    }
+  }
+  getNumAliveShips(): number {
+    let deadShips = 0;
+    this._fleet.forEach((ship) => {
+      if (!ship.isAfloat()) {
+        deadShips++;
+      }
+    });
+    return this._fleet.length - deadShips;
   }
   getFleet(): Array<Ship> {
     return this._fleet;
