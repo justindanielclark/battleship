@@ -9,15 +9,13 @@ class Point {
     return new Point(this.x, this.y);
   }
   isBetween(pointA: Point, pointB: Point): boolean {
-    return (
-      this.x >= pointA.x &&
-      this.x < pointB.x &&
-      this.y >= pointA.y &&
-      this.y < pointB.y
-    );
+    return this.x >= pointA.x && this.x < pointB.x && this.y >= pointA.y && this.y < pointB.y;
   }
-  toString() {
+  toString(): string {
     return `{x: ${this.x}, y: ${this.y}}`;
+  }
+  equals(point: Point): boolean {
+    return this.x === point.x && this.y === point.y;
   }
 }
 
