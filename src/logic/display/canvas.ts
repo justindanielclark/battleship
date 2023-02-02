@@ -33,11 +33,11 @@ const canvas = () => {
       lesser = windowInnerHeight;
       _data.orientation = "landscape";
     }
-    // while (lesser % 3 !== 0) {
-    //   lesser--;
-    // }
+    while (lesser % 3 !== 0) {
+      lesser--;
+    }
     if ((lesser * 4) / 3 > greater) {
-      while (greater % 120 !== 0) {
+      while (greater % 4 !== 0) {
         greater--;
       }
       lesser = (greater * 3) / 4;
