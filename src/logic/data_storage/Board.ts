@@ -6,7 +6,7 @@ class Board {
   private _tiles: Array<Array<Tile>>;
   private _xSize: number;
   private _ySize: number;
-  private _fleet: Array<Ship>;
+  private _fleet: Array<{ ship: Ship; startLoc: Point }>;
   constructor(xSize: number, ySize: number) {
     this._xSize = xSize;
     this._ySize = ySize;
@@ -79,8 +79,8 @@ class Board {
   }
   isAlive(): boolean {
     let deadShips = 0;
-    this._fleet.forEach((ship) => {
-      if (!ship.isAfloat()) {
+    this._fleet.forEach((item) => {
+      if (!item.ship.isAfloat()) {
         deadShips++;
       }
     });
@@ -88,9 +88,9 @@ class Board {
   }
   isShipAlive(shipName: ShipType): boolean {
     let foundShip: Ship | undefined;
-    this._fleet.forEach((ship) => {
-      if (ship.shipType === shipName) {
-        foundShip = ship;
+    this._fleet.forEach((item) => {
+      if (item.ship.shipType === shipName) {
+        foundShip = item.ship;
       }
     });
     if (foundShip) {
@@ -101,20 +101,20 @@ class Board {
   }
   getNumAliveShips(): number {
     let deadShips = 0;
-    this._fleet.forEach((ship) => {
-      if (!ship.isAfloat()) {
+    this._fleet.forEach((item) => {
+      if (!item.ship.isAfloat()) {
         deadShips++;
       }
     });
     return this._fleet.length - deadShips;
   }
-  getFleet(): Array<Ship> {
+  getFleet(): Array<{ ship: Ship; startLoc: Point }> {
     return this._fleet;
   }
   addShip(startingLoc: Point, ship: Ship): void {
     const point = startingLoc.deepCopy();
     if (this.isValidPlacementLocation(startingLoc, ship)) {
-      this._fleet.push(ship);
+      this._fleet.push({ ship, startLoc: startingLoc });
       for (let i = 0; i < ship.parts.length; i++) {
         this.#getTile(point).occupiedBy = ship.parts[i];
         if (ship.orientation === "NS") {
