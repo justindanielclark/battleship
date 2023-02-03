@@ -131,49 +131,59 @@ const zIndexes = {
 };
 
 const game = (): Game => {
-  const _gameConfig: GameConfig = {
+  const gameConfig: GameConfig = {
     boardConfig: {
-      xSize: 20,
-      ySize: 20,
+      xSize: 18,
+      ySize: 18,
     },
     updateSpeed: 16,
-    appearingTextSpeed: 0.85,
-    transitionSpeed: 0.45,
-    radarLimit: 10,
+    appearingTextSpeed: 1, // Must Be Less Than 1
+    transitionSpeed: 0.85, // Must Be Less Than 1
+    radarLimit: 10, // Num Tiles Radar Can Check Per Turn
   };
   const sprites = {
     model: modelSprites(),
     text: textSprites(),
   };
-  const _boards: Array<Board> = [
-    new Board(_gameConfig.boardConfig.xSize, _gameConfig.boardConfig.ySize),
-    new Board(_gameConfig.boardConfig.xSize, _gameConfig.boardConfig.ySize),
+  const boards: Array<Board> = [
+    new Board(gameConfig.boardConfig.xSize, gameConfig.boardConfig.ySize),
+    new Board(gameConfig.boardConfig.xSize, gameConfig.boardConfig.ySize),
   ];
-  _boards[0].addShip(new Point(0, 0), new Ship("carrier", "EW"));
-  _boards[0].addShip(new Point(0, 1), new Ship("battleship", "EW"));
-  _boards[0].addShip(new Point(0, 2), new Ship("cruiser", "EW"));
-  _boards[0].addShip(new Point(0, 3), new Ship("submarine", "EW"));
-  _boards[0].addShip(new Point(0, 4), new Ship("destroyer", "EW"));
-  _boards[0].target(new Point(0, 0));
-  _boards[0].target(new Point(1, 0));
-  _boards[0].target(new Point(2, 0));
-  _boards[0].target(new Point(3, 0));
-  _boards[0].target(new Point(4, 0));
+  boards[0].addShip(new Point(0, 0), new Ship("carrier", "EW"));
+  boards[0].addShip(new Point(0, 1), new Ship("battleship", "EW"));
+  boards[0].addShip(new Point(0, 2), new Ship("cruiser", "EW"));
+  boards[0].addShip(new Point(0, 3), new Ship("submarine", "EW"));
+  boards[0].addShip(new Point(0, 4), new Ship("destroyer", "EW"));
+  // boards[0].target(new Point(0, 0));
+  // boards[0].target(new Point(1, 0));
+  // boards[0].target(new Point(2, 0));
+  // boards[0].target(new Point(3, 0));
+  // boards[0].target(new Point(4, 0));
+  // boards[0].target(new Point(0, 3));
+  // boards[0].target(new Point(1, 3));
+  // boards[0].target(new Point(2, 3));
+  // boards[0].target(new Point(0, 1));
+  // boards[0].target(new Point(1, 1));
+  // boards[0].target(new Point(2, 1));
+  // boards[0].target(new Point(3, 1));
+  // boards[0].target(new Point(0, 2));
+  // boards[0].target(new Point(1, 2));
+  // boards[0].target(new Point(2, 2));
 
-  _boards[1].addShip(new Point(12, 12), new Ship("carrier", "NS"));
-  _boards[1].addShip(new Point(13, 12), new Ship("battleship", "NS"));
-  _boards[1].addShip(new Point(14, 12), new Ship("cruiser", "NS"));
-  _boards[1].addShip(new Point(15, 12), new Ship("submarine", "NS"));
-  _boards[1].addShip(new Point(16, 12), new Ship("destroyer", "NS"));
-  _boards[1].target(new Point(12, 12));
-  _boards[1].target(new Point(13, 13));
-  _boards[1].target(new Point(12, 13));
-  _boards[1].target(new Point(12, 14));
-  _boards[1].target(new Point(12, 15));
-  _boards[1].target(new Point(12, 16));
-  _boards[1].target(new Point(0, 0));
-  _boards[1].target(new Point(0, 1));
-  _boards[1].target(new Point(1, 1));
+  boards[1].addShip(new Point(0, 0), new Ship("carrier", "NS"));
+  boards[1].addShip(new Point(1, 0), new Ship("battleship", "NS"));
+  boards[1].addShip(new Point(2, 0), new Ship("cruiser", "NS"));
+  boards[1].addShip(new Point(3, 0), new Ship("submarine", "NS"));
+  boards[1].addShip(new Point(4, 0), new Ship("destroyer", "NS"));
+  // boards[1].target(new Point(12, 12));
+  // boards[1].target(new Point(13, 13));
+  // boards[1].target(new Point(12, 13));
+  // boards[1].target(new Point(12, 14));
+  // boards[1].target(new Point(12, 15));
+  // boards[1].target(new Point(12, 16));
+  // boards[1].target(new Point(0, 0));
+  // boards[1].target(new Point(0, 1));
+  // boards[1].target(new Point(1, 1));
 
   //! DECLARATIONS(Start)
   // GAMESTATE
@@ -200,7 +210,7 @@ const game = (): Game => {
     ],
   ];
   const Cooldowns: Array<Cooldown> = [
-    { airstrike: 3, mines: 0 },
+    { airstrike: 0, mines: 0 },
     { airstrike: 0, mines: 0 },
   ];
   const CooldownLimits: Cooldown = {
@@ -282,19 +292,25 @@ const game = (): Game => {
     if (draggableObjects.length > 0) {
       emptyDraggableObjects();
     }
+    if (highlightTiles.length > 0) {
+      emptyHighlightTiles();
+    }
+    if (altHighlightTiles.length > 0) {
+      emptyAltHighlightTiles();
+    }
     currentScene.flushAll();
     switch (state) {
       case "settingPieces": {
         initializeDraggableObjects();
-        createButton("green", "CONFIRM", new Point(5, 90), handleConfirmButton);
-        createButton("red", "RESET", new Point(70, 90), handleResetButton);
+        createButton("green", "Confirm", new Point(5, 90), handleConfirmButton);
+        createButton("red", "Reset", new Point(70, 90), handleResetButton);
         transformTextToDisplayableFormat(
           appearingTextToDisplay,
           "Drop Your Ships Into Your Desired Layout. ~Click Confirm When Complete.",
           canvas.views.drawer.sections[0]
         );
         addTileDesignationsToScene(currentScene);
-        addFriendlyBoardToScene(currentScene, _boards[playerTurn]);
+        addFriendlyBoardToScene(currentScene, boards[playerTurn]);
         addAppearingTextToScene(currentScene);
         addClickableObjectsToScene(currentScene);
         break;
@@ -312,7 +328,7 @@ const game = (): Game => {
         createButton("green", "PROCEED", new Point(35, 90), handleConfirmButton);
         addClickableObjectsToScene(currentScene);
         addTileDesignationsToScene(currentScene);
-        addFriendlyBoardToScene(currentScene, _boards[playerTurn]);
+        addFriendlyBoardToScene(currentScene, boards[playerTurn]);
         addAppearingTextToScene(currentScene);
         break;
       }
@@ -324,14 +340,15 @@ const game = (): Game => {
         createButton("green", "PROCEED", new Point(35, 90), handleConfirmButton);
         addClickableObjectsToScene(currentScene);
         addTileDesignationsToScene(currentScene);
-        addEnemyBoardToScene(currentScene, _boards[getEnemyTurn()]);
+        addEnemyBoardToScene(currentScene, boards[getEnemyTurn()]);
         addAppearingTextToScene(currentScene);
         break;
       }
       case "attack": {
-        transformTextToDisplayableFormat(textToDisplay, "CHOOSE AN ATTACK:", canvas.views.drawer.sections[0]);
+        readyTextForAttack();
+        readyTextForFleetStatus();
         addTileDesignationsToScene(currentScene);
-        addEnemyBoardToScene(currentScene, _boards[getEnemyTurn()]);
+        addEnemyBoardToScene(currentScene, boards[getEnemyTurn()]);
         createAbilityButtons();
         addTextToScene(currentScene);
         addClickableObjectsToScene(currentScene);
@@ -339,29 +356,60 @@ const game = (): Game => {
       }
       case "attack-salvo": {
         const textMessage =
-          _boards[playerTurn].getNumAliveShips() === 1
-            ? "SALVO: PICK A TILE TO ATTACK"
-            : `SALVO: PICK UP TO ${_boards[playerTurn].getNumAliveShips()} TILES TO ATTACK:`;
-        createButton("green", "CONFIRM", new Point(5, 45), handleConfirmButton);
-        createButton("red", "RESET", new Point(5, 65), handleResetButton);
-        createButton("red", "CANCEL", new Point(5, 85), handleCancelButton);
+          boards[playerTurn].getNumAliveShips() === 1
+            ? "Salvo: Pick A Tile To Attack"
+            : `Salvo: Pick Up To ${boards[playerTurn].getNumAliveShips()} Tiles To Attack:`;
+        createButton("green", "Confirm", new Point(5, 60), handleConfirmButton);
+        createButton("red", "Reset", new Point(5, 80), handleResetButton);
+        createButton("red", "Cancel", new Point(5, 100), handleCancelButton);
         transformTextToDisplayableFormat(appearingTextToDisplay, textMessage, canvas.views.drawer.sections[0]);
+        readyTextForFleetStatus();
         addTileDesignationsToScene(currentScene);
-        addEnemyBoardToScene(currentScene, _boards[getEnemyTurn()]);
+        addEnemyBoardToScene(currentScene, boards[getEnemyTurn()]);
         addTextToScene(currentScene);
         addClickableObjectsToScene(currentScene);
         break;
       }
       case "attack-radar": {
-        const textMessage = "RADAR: PICK UP TO 10 TILES TO INVESTIGATE";
-        createButton("green", "CONFIRM", new Point(5, 45), handleConfirmButton);
-        createButton("red", "RESET", new Point(5, 65), handleResetButton);
-        createButton("red", "CANCEL", new Point(5, 85), handleCancelButton);
+        const textMessage = "Radar: Pick Up To 10 Tiles To Investigate";
+        createButton("green", "Confirm", new Point(5, 60), handleConfirmButton);
+        createButton("red", "Reset", new Point(5, 80), handleResetButton);
+        createButton("red", "Cancel", new Point(5, 100), handleCancelButton);
         transformTextToDisplayableFormat(appearingTextToDisplay, textMessage, canvas.views.drawer.sections[0]);
+        readyTextForFleetStatus();
         addTileDesignationsToScene(currentScene);
-        addEnemyBoardToScene(currentScene, _boards[getEnemyTurn()]);
+        addEnemyBoardToScene(currentScene, boards[getEnemyTurn()]);
         addTextToScene(currentScene);
         addClickableObjectsToScene(currentScene);
+        break;
+      }
+      case "attack-mines": {
+        const textMessage = "Mines: Pick A Tile to Center A Large Blast";
+        createButton("green", "Confirm", new Point(5, 60), handleConfirmButton);
+        createButton("red", "Reset", new Point(5, 80), handleResetButton);
+        createButton("red", "Cancel", new Point(5, 100), handleCancelButton);
+        transformTextToDisplayableFormat(appearingTextToDisplay, textMessage, canvas.views.drawer.sections[0]);
+        readyTextForFleetStatus();
+        addTileDesignationsToScene(currentScene);
+        addEnemyBoardToScene(currentScene, boards[getEnemyTurn()]);
+        addTextToScene(currentScene);
+        addAppearingTextToScene(currentScene);
+        addClickableObjectsToScene(currentScene);
+        break;
+      }
+      case "attack-airstrike": {
+        const textMessage = "Airstrike: Pick a Strip of Tiles Aligned with Your Carrier To Bomb!";
+        createButton("green", "Confirm", new Point(5, 60), handleConfirmButton);
+        createButton("red", "Reset", new Point(5, 80), handleResetButton);
+        createButton("red", "Cancel", new Point(5, 100), handleCancelButton);
+        transformTextToDisplayableFormat(appearingTextToDisplay, textMessage, canvas.views.drawer.sections[0]);
+        readyTextForFleetStatus();
+        addTileDesignationsToScene(currentScene);
+        addEnemyBoardToScene(currentScene, boards[getEnemyTurn()]);
+        addTextToScene(currentScene);
+        addAppearingTextToScene(currentScene);
+        addClickableObjectsToScene(currentScene);
+
         break;
       }
     }
@@ -438,13 +486,17 @@ const game = (): Game => {
         drawMouse();
         break;
       }
-      case "attack-airstrike": {
-        currentScene.flushZIndex(zIndexes.reticule);
+      case "attack-mines": {
+        currentScene.flushZIndex(zIndexes.reticule, zIndexes.highlightTiles);
+        addAppearingTextToScene(currentScene);
+        addHighlightTilesToScene(currentScene);
         drawMouse();
         break;
       }
-      case "attack-mines": {
-        currentScene.flushZIndex(zIndexes.reticule);
+      case "attack-airstrike": {
+        currentScene.flushZIndex(zIndexes.reticule, zIndexes.highlightTiles);
+        addAppearingTextToScene(currentScene);
+        addHighlightTilesToScene(currentScene);
         drawMouse();
         break;
       }
@@ -470,7 +522,7 @@ const game = (): Game => {
   //GAMESTATE TAKEDOWN
   function handleTransition(): void {
     currentScene.flushZIndex(zIndexes.transitionTiles);
-    transitioningProgress += isTransitioningForward ? _gameConfig.transitionSpeed : -_gameConfig.transitionSpeed;
+    transitioningProgress += isTransitioningForward ? gameConfig.transitionSpeed : -gameConfig.transitionSpeed;
     const flooredTransitioningProgress = Math.floor(transitioningProgress);
     //Transition Ends
     if (
@@ -500,8 +552,44 @@ const game = (): Game => {
             setState("offensiveTurnReview");
             break;
           }
-          case "offensiveTurnReview": {
-            setState("attack");
+          case "attack-salvo": {
+            playerTurn = (playerTurn + 1) % 2;
+            if (playerTurn === 0) {
+              hitTargetedTiles();
+              currentTurn++;
+            }
+            nextState = currentTurn === 0 ? "offensiveTurnReview" : "defensiveTurnReview";
+            setState("playerSwapScreen");
+            break;
+          }
+          case "attack-mines": {
+            playerTurn = (playerTurn + 1) % 2;
+            if (playerTurn === 0) {
+              hitTargetedTiles();
+              currentTurn++;
+            }
+            nextState = currentTurn === 0 ? "offensiveTurnReview" : "defensiveTurnReview";
+            setState("playerSwapScreen");
+            break;
+          }
+          case "attack-radar": {
+            playerTurn = (playerTurn + 1) % 2;
+            if (playerTurn === 0) {
+              hitTargetedTiles();
+              currentTurn++;
+            }
+            nextState = currentTurn === 0 ? "offensiveTurnReview" : "defensiveTurnReview";
+            setState("playerSwapScreen");
+            break;
+          }
+          case "attack-airstrike": {
+            playerTurn = (playerTurn + 1) % 2;
+            if (playerTurn === 0) {
+              hitTargetedTiles();
+              currentTurn++;
+            }
+            nextState = currentTurn === 0 ? "offensiveTurnReview" : "defensiveTurnReview";
+            setState("playerSwapScreen");
             break;
           }
         }
@@ -517,7 +605,7 @@ const game = (): Game => {
   }
   //!CONFIG AND GAMESTATE
   function getGameConfig(): GameConfig {
-    return _gameConfig;
+    return gameConfig;
   }
   function getCanvasConfig(): CanvasConfig {
     return canvas;
@@ -537,7 +625,7 @@ const game = (): Game => {
     if (!transitioning) {
       switch (state) {
         case "settingPieces": {
-          if (_boards[playerTurn].getFleet().length === 5) {
+          if (boards[playerTurn].getFleet().length === 5) {
             transitioning = true;
           } else {
             currentScene.flushZIndex(zIndexes.appearingText);
@@ -556,7 +644,7 @@ const game = (): Game => {
           break;
         }
         case "offensiveTurnReview": {
-          transitioning = true;
+          setState("attack");
           mouse.isHoveringOverClickable = false;
           break;
         }
@@ -566,13 +654,13 @@ const game = (): Game => {
             resetAppearingText();
             transformTextToDisplayableFormat(
               appearingTextToDisplay,
-              "YOU MUST SELECT AT LEAST 1 TILE",
+              "You Must Target At Least 1 Tile In Your Attack",
               canvas.views.drawer.sections[0]
             );
           } else {
             transitioning = true;
             const hitTiles = altHighlightTiles.filter((tile) => {
-              return _boards[getEnemyTurn()].isOccupied(tile);
+              return boards[getEnemyTurn()].isOccupied(tile);
             });
             const targetedTiles = [...altHighlightTiles];
             Turns[playerTurn].push({ attackType: "salvo", hitTiles, targetedTiles });
@@ -585,18 +673,36 @@ const game = (): Game => {
             resetAppearingText();
             transformTextToDisplayableFormat(
               appearingTextToDisplay,
-              "YOU MUST SELECT AT LEAST 1 TILE",
+              "You Must Target At Least 1 Tile In Your Attack",
               canvas.views.drawer.sections[0]
             );
           } else {
             transitioning = true;
             const hitTiles = altHighlightTiles.filter((tile) => {
-              return _boards[getEnemyTurn()].isOccupied(tile);
+              return boards[getEnemyTurn()].isOccupied(tile);
             });
             const targetedTiles = [...altHighlightTiles];
             Turns[playerTurn].push({ attackType: "radar", hitTiles, targetedTiles });
           }
           break;
+        }
+        case "attack-mines": {
+          if (altHighlightTiles.length === 0) {
+            currentScene.flushZIndex(zIndexes.appearingText);
+            resetAppearingText();
+            transformTextToDisplayableFormat(
+              appearingTextToDisplay,
+              "You Must Target At Least 1 Tile In Your Attack",
+              canvas.views.drawer.sections[0]
+            );
+          } else {
+            transitioning = true;
+            const hitTiles = altHighlightTiles.filter((tile) => {
+              return boards[getEnemyTurn()].isOccupied(tile);
+            });
+            const targetedTiles = [...altHighlightTiles];
+            Turns[playerTurn].push({ attackType: "mines", hitTiles, targetedTiles });
+          }
         }
       }
     }
@@ -614,6 +720,11 @@ const game = (): Game => {
           setState("attack");
           break;
         }
+        case "attack-mines": {
+          emptyAltHighlightTiles();
+          setState("attack");
+          break;
+        }
       }
     }
   }
@@ -621,7 +732,7 @@ const game = (): Game => {
     if (!transitioning) {
       switch (state) {
         case "settingPieces": {
-          _boards[playerTurn].reset();
+          boards[playerTurn].reset();
           currentScene.flushZIndex(zIndexes.ships);
           resetDraggableObjectPositions();
           resetDraggableObjectVisibility();
@@ -633,6 +744,11 @@ const game = (): Game => {
           break;
         }
         case "attack-radar": {
+          currentScene.flushZIndex(zIndexes.altHighlightTiles);
+          emptyAltHighlightTiles();
+          break;
+        }
+        case "attack-mines": {
           currentScene.flushZIndex(zIndexes.altHighlightTiles);
           emptyAltHighlightTiles();
           break;
@@ -682,10 +798,12 @@ const game = (): Game => {
           break;
         }
         case "attack-salvo": {
+          console.log({ highlightTiles });
+          console.log({ altHighlightTiles });
           if (isWithinBoardTiles(clickedPoint)) {
             const boardLoc = getTileAtLocation(clickedPoint);
-            const hasAlreadyBeenTargeted = _boards[getEnemyTurn()].getTargeted(boardLoc);
-            if (altHighlightTiles.length < _boards[playerTurn].getNumAliveShips() && !hasAlreadyBeenTargeted) {
+            const hasAlreadyBeenTargeted = boards[getEnemyTurn()].getTargeted(boardLoc);
+            if (altHighlightTiles.length < boards[playerTurn].getNumAliveShips() && !hasAlreadyBeenTargeted) {
               const isInAltHighlightTiles = altHighlightTiles.reduce((acc, cur) => {
                 if (acc === true) {
                   return true;
@@ -707,8 +825,8 @@ const game = (): Game => {
         case "attack-radar": {
           if (isWithinBoardTiles(clickedPoint)) {
             const boardLoc = getTileAtLocation(clickedPoint);
-            const hasAlreadyBeenTargeted = _boards[getEnemyTurn()].getTargeted(boardLoc);
-            if (altHighlightTiles.length < _gameConfig.radarLimit && !hasAlreadyBeenTargeted) {
+            const hasAlreadyBeenTargeted = boards[getEnemyTurn()].getTargeted(boardLoc);
+            if (altHighlightTiles.length < gameConfig.radarLimit && !hasAlreadyBeenTargeted) {
               const isInAltHighlightTiles = altHighlightTiles.reduce((acc, cur) => {
                 if (acc === true) {
                   return true;
@@ -726,6 +844,17 @@ const game = (): Game => {
             ifHoveringOverClickableExecuteClickableFunc();
           }
           break;
+        }
+        case "attack-mines": {
+          if (isWithinBoardTiles(clickedPoint)) {
+            if (highlightTiles.length > 0 && altHighlightTiles.length === 0) {
+              altHighlightTiles.push(...highlightTiles);
+              currentScene.flushZIndex(zIndexes.altHighlightTiles);
+              addAltHighlightTilesToScene(currentScene);
+            }
+          } else {
+            ifHoveringOverClickableExecuteClickableFunc();
+          }
         }
       }
     }
@@ -766,16 +895,16 @@ const game = (): Game => {
           if (startWithinBounds && endWithinBounds) {
             const shipType = currentDraggedObject.name;
             const dropPoint = validTilesForPlacement[0].loc;
-            const isValid = _boards[playerTurn].isValidPlacementLocation(dropPoint, new Ship(shipType, orientation));
+            const isValid = boards[playerTurn].isValidPlacementLocation(dropPoint, new Ship(shipType, orientation));
             if (isValid) {
-              _boards[playerTurn].addShip(dropPoint, new Ship(shipType, orientation));
+              boards[playerTurn].addShip(dropPoint, new Ship(shipType, orientation));
               draggableObjects.forEach((drgObj) => {
                 if (drgObj.name === shipType) {
                   drgObj.visible = false;
                 }
               });
               currentScene.flushZIndex(zIndexes.tiles, zIndexes.ships);
-              addFriendlyBoardToScene(currentScene, _boards[playerTurn]);
+              addFriendlyBoardToScene(currentScene, boards[playerTurn]);
             } else {
               currentDraggedObject.start.x = currentDraggedObject.defaultStart.x;
               currentDraggedObject.start.y = currentDraggedObject.defaultStart.y;
@@ -831,7 +960,7 @@ const game = (): Game => {
             validTilesForPlacement.length = 0;
             if (startTile && endTile) {
               if (currentDraggedObject.rotation === 0) {
-                const isValid = _boards[playerTurn].isValidPlacementLocation(
+                const isValid = boards[playerTurn].isValidPlacementLocation(
                   startTile,
                   new Ship(currentDraggedObject.name, "EW")
                 );
@@ -842,7 +971,7 @@ const game = (): Game => {
                   });
                 }
               } else {
-                const isValid = _boards[playerTurn].isValidPlacementLocation(
+                const isValid = boards[playerTurn].isValidPlacementLocation(
                   startTile,
                   new Ship(currentDraggedObject.name, "NS")
                 );
@@ -855,14 +984,14 @@ const game = (): Game => {
               }
             } else if (startTile) {
               if (currentDraggedObject.rotation === 0) {
-                for (let i = startTile.x; i < _gameConfig.boardConfig.xSize; i++) {
+                for (let i = startTile.x; i < gameConfig.boardConfig.xSize; i++) {
                   validTilesForPlacement.push({
                     loc: new Point(i, startTile.y),
                     valid: false,
                   });
                 }
               } else {
-                for (let i = startTile.y; i < _gameConfig.boardConfig.ySize; i++) {
+                for (let i = startTile.y; i < gameConfig.boardConfig.ySize; i++) {
                   validTilesForPlacement.push({
                     loc: new Point(startTile.x, i),
                     valid: false,
@@ -937,15 +1066,49 @@ const game = (): Game => {
         const checkPoint = new Point(trueX, trueY);
         mouse.isHoveringOverClickable = isHoveringOverClickable(checkPoint).found;
         highlightUntargetedTile(checkPoint);
+        break;
+      }
+      case "attack-mines": {
+        const checkPoint = new Point(trueX, trueY);
+        mouse.isHoveringOverClickable = isHoveringOverClickable(checkPoint).found;
+        highlightUntargetedTilesForBlast(checkPoint);
+        break;
       }
     }
     function highlightUntargetedTile(checkPoint: Point) {
       emptyHighlightTiles();
       if (isWithinBoardTiles(checkPoint)) {
         const tile = getTileAtLocation(checkPoint);
-        if (!_boards[getEnemyTurn()].getTargeted(tile)) {
+        if (!boards[getEnemyTurn()].getTargeted(tile)) {
           highlightTiles.push(tile);
         }
+      }
+    }
+    function highlightUntargetedTilesForBlast(checkPoint: Point) {
+      emptyHighlightTiles();
+      if (isWithinBoardTiles(checkPoint)) {
+        const centerTile = getTileAtLocation(checkPoint);
+        const aboveTile = new Point(
+          centerTile.x,
+          centerTile.y === 0 ? gameConfig.boardConfig.ySize - 1 : centerTile.y - 1
+        );
+        const rightTile = new Point(
+          centerTile.x === gameConfig.boardConfig.xSize - 1 ? 0 : centerTile.x + 1,
+          centerTile.y
+        );
+        const leftTile = new Point(
+          centerTile.x === 0 ? gameConfig.boardConfig.xSize - 1 : centerTile.x - 1,
+          centerTile.y
+        );
+        const belowTile = new Point(
+          centerTile.x,
+          centerTile.y === gameConfig.boardConfig.ySize - 1 ? 0 : centerTile.y + 1
+        );
+        const tilesToConsider = [centerTile, aboveTile, rightTile, leftTile, belowTile];
+        const tilesToAdd = tilesToConsider.filter((tile) => {
+          return !boards[getEnemyTurn()].getTargeted(tile);
+        });
+        highlightTiles.push(...tilesToAdd);
       }
     }
   }
@@ -1029,9 +1192,9 @@ const game = (): Game => {
         main.end.x = trueSize.width;
         main.end.y = trueSize.height;
         boardPosition.start.x =
-          (main.end.x - main.start.x - (_gameConfig.boardConfig.xSize + 1) * 16) / 2 + main.start.x;
+          (main.end.x - main.start.x - (gameConfig.boardConfig.xSize + 1) * 16) / 2 + main.start.x;
         boardPosition.start.y =
-          (main.end.y - main.start.y - (_gameConfig.boardConfig.ySize + 1) * 16) / 2 + main.start.y;
+          (main.end.y - main.start.y - (gameConfig.boardConfig.ySize + 1) * 16) / 2 + main.start.y;
         boardPosition.end.x = main.end.x - (boardPosition.start.x - main.start.x);
         boardPosition.end.y = main.end.y - (boardPosition.start.y - main.start.y);
         section1.start = drawer.start;
@@ -1052,9 +1215,9 @@ const game = (): Game => {
         main.end.x = trueSize.width;
         main.end.y = trueSize.height;
         boardPosition.start.x =
-          (main.end.x - main.start.x - (_gameConfig.boardConfig.xSize + 1) * 16) / 2 + main.start.x;
+          (main.end.x - main.start.x - (gameConfig.boardConfig.xSize + 1) * 16) / 2 + main.start.x;
         boardPosition.start.y =
-          (main.end.y - main.start.y - (_gameConfig.boardConfig.ySize + 1) * 16) / 2 + main.start.y;
+          (main.end.y - main.start.y - (gameConfig.boardConfig.ySize + 1) * 16) / 2 + main.start.y;
         boardPosition.end.x = main.end.x - (boardPosition.start.x - main.start.x);
         boardPosition.end.y = main.end.y - (boardPosition.start.y - main.start.y);
         section1.start = drawer.start;
@@ -1076,7 +1239,7 @@ const game = (): Game => {
       case "settingPieces": {
         currentScene.flushZIndex(zIndexes.tiles, zIndexes.ships, zIndexes.text);
         addTileDesignationsToScene(currentScene);
-        addFriendlyBoardToScene(currentScene, _boards[playerTurn]);
+        addFriendlyBoardToScene(currentScene, boards[playerTurn]);
         break;
       }
       case "playerSwapScreen": {
@@ -1094,7 +1257,7 @@ const game = (): Game => {
           zIndexes.highlightTiles
         );
         addTileDesignationsToScene(currentScene);
-        addFriendlyBoardToScene(currentScene, _boards[playerTurn]);
+        addFriendlyBoardToScene(currentScene, boards[playerTurn]);
         redrawAppearingText();
         break;
       }
@@ -1107,27 +1270,58 @@ const game = (): Game => {
           zIndexes.highlightTiles
         );
         addTileDesignationsToScene(currentScene);
-        addEnemyBoardToScene(currentScene, _boards[getEnemyTurn()]);
+        addEnemyBoardToScene(currentScene, boards[getEnemyTurn()]);
         redrawAppearingText();
         break;
       }
       case "attack": {
-        currentScene.flushZIndex(zIndexes.tiles, zIndexes.ships, zIndexes.text);
+        currentScene.flushZIndex(zIndexes.tiles, zIndexes.ships, zIndexes.text, zIndexes.appearingText);
+        resetText();
+        readyTextForAttack();
+        readyTextForFleetStatus();
+        addTextToScene(currentScene);
         addTileDesignationsToScene(currentScene);
-        addEnemyBoardToScene(currentScene, _boards[getEnemyTurn()]);
+        addEnemyBoardToScene(currentScene, boards[getEnemyTurn()]);
+        redrawAppearingText();
         break;
       }
       case "attack-salvo": {
         currentScene.flushZIndex(zIndexes.tiles, zIndexes.ships, zIndexes.text, zIndexes.altHighlightTiles);
+        resetText();
+        readyTextForFleetStatus();
+        addTextToScene(currentScene);
         addTileDesignationsToScene(currentScene);
-        addEnemyBoardToScene(currentScene, _boards[getEnemyTurn()]);
+        addEnemyBoardToScene(currentScene, boards[getEnemyTurn()]);
         addAltHighlightTilesToScene(currentScene);
         break;
       }
       case "attack-radar": {
         currentScene.flushZIndex(zIndexes.tiles, zIndexes.ships, zIndexes.text, zIndexes.altHighlightTiles);
+        resetText();
+        readyTextForFleetStatus();
+        addTextToScene(currentScene);
         addTileDesignationsToScene(currentScene);
-        addEnemyBoardToScene(currentScene, _boards[getEnemyTurn()]);
+        addEnemyBoardToScene(currentScene, boards[getEnemyTurn()]);
+        addAltHighlightTilesToScene(currentScene);
+        break;
+      }
+      case "attack-mines": {
+        currentScene.flushZIndex(zIndexes.tiles, zIndexes.ships, zIndexes.text, zIndexes.altHighlightTiles);
+        resetText();
+        readyTextForFleetStatus();
+        addTextToScene(currentScene);
+        addTileDesignationsToScene(currentScene);
+        addEnemyBoardToScene(currentScene, boards[getEnemyTurn()]);
+        addAltHighlightTilesToScene(currentScene);
+        break;
+      }
+      case "attack-airstrike": {
+        currentScene.flushZIndex(zIndexes.tiles, zIndexes.ships, zIndexes.text, zIndexes.altHighlightTiles);
+        resetText();
+        readyTextForFleetStatus();
+        addTextToScene(currentScene);
+        addTileDesignationsToScene(currentScene);
+        addEnemyBoardToScene(currentScene, boards[getEnemyTurn()]);
         addAltHighlightTilesToScene(currentScene);
         break;
       }
@@ -1161,7 +1355,7 @@ const game = (): Game => {
       for (const char of wordArr) {
         if (char === "~") {
           x = root.start.x + offset.x;
-          y += 14;
+          y += 8;
         } else {
           displayArray.push({
             img: sprites.text[char as validTextSpriteAccessor],
@@ -1182,14 +1376,14 @@ const game = (): Game => {
   }
   function addTileDesignationsToScene(scene: SceneBuilder): void {
     const { main } = canvas.views;
-    for (let i = 0; i < _gameConfig.boardConfig.xSize; i++) {
+    for (let i = 0; i < gameConfig.boardConfig.xSize; i++) {
       scene.addImgToScene(
         zIndexes.text,
         sprites.text[String.fromCharCode(i + 65) as validTextSpriteAccessor],
         new Point(16 * i + 4 + main.boardPosition.start.x + 16, main.boardPosition.start.y + 4)
       );
     }
-    for (let i = 1; i <= _gameConfig.boardConfig.ySize; i++) {
+    for (let i = 1; i <= gameConfig.boardConfig.ySize; i++) {
       if (i < 10) {
         scene.addImgToScene(
           zIndexes.text,
@@ -1214,8 +1408,8 @@ const game = (): Game => {
   }
   function addFriendlyBoardToScene(scene: SceneBuilder, board: Board): void {
     const { main } = canvas.views;
-    for (let x = 0; x < _gameConfig.boardConfig.xSize; x++) {
-      for (let y = 0; y < _gameConfig.boardConfig.ySize; y++) {
+    for (let x = 0; x < gameConfig.boardConfig.xSize; x++) {
+      for (let y = 0; y < gameConfig.boardConfig.ySize; y++) {
         const searchPoint = new Point(x, y);
         const drawPoint = new Point(x * 16 + main.boardPosition.start.x + 16, y * 16 + main.boardPosition.start.y + 16);
         if (board.getTargeted(searchPoint)) {
@@ -1245,8 +1439,8 @@ const game = (): Game => {
   }
   function addEnemyBoardToScene(scene: SceneBuilder, board: Board): void {
     const { main } = canvas.views;
-    for (let x = 0; x < _gameConfig.boardConfig.xSize; x++) {
-      for (let y = 0; y < _gameConfig.boardConfig.ySize; y++) {
+    for (let x = 0; x < gameConfig.boardConfig.xSize; x++) {
+      for (let y = 0; y < gameConfig.boardConfig.ySize; y++) {
         const searchPoint = new Point(x, y);
         const drawPoint = new Point(x * 16 + main.boardPosition.start.x + 16, y * 16 + main.boardPosition.start.y + 16);
         if (board.getTargeted(searchPoint)) {
@@ -1342,7 +1536,7 @@ const game = (): Game => {
         scene.addImgToScene(zIndexes.appearingText, img, new Point(root.start.x + offset.x, root.start.y + offset.y));
       }
       appearingTextToDisplayProgressLast = appearingTextToDisplayProgress;
-      appearingTextToDisplayProgress += _gameConfig.appearingTextSpeed;
+      appearingTextToDisplayProgress += gameConfig.appearingTextSpeed;
     }
   }
   function addClickableObjectsToScene(scene: SceneBuilder): void {
@@ -1497,7 +1691,7 @@ const game = (): Game => {
       if (ability !== "salvo") {
         const possibleAssociatedShips = associatedShips[i - 1];
         const numAlive = possibleAssociatedShips.reduce((acc, cur) => {
-          return acc + (_boards[playerTurn].isShipAlive(cur) ? 1 : 0);
+          return acc + (boards[playerTurn].isShipAlive(cur) ? 1 : 0);
         }, 0);
         if (numAlive > 0) {
           addAbilityButton(i);
@@ -1560,38 +1754,43 @@ const game = (): Game => {
     }
   }
   function hoverAbilityButton(ability: AttackTypes) {
-    //!
+    const offsets = { x: 3, y: 10 };
+
     resetAppearingText();
     switch (ability) {
       case "salvo": {
         transformTextToDisplayableFormat(
           appearingTextToDisplay,
-          "LAUNCH 1 ATTACK AT THE ENEMY FOR EACH REMAINING SHIP IN YOUR FLEET ~NO COOLDOWN",
-          canvas.views.drawer.sections[2]
+          "Launch 1 Attack At The Enemy For Each Remaining Ship In Your Fleet. ~ ~No Cooldown.",
+          canvas.views.drawer.sections[1],
+          offsets
         );
         break;
       }
       case "radar": {
         transformTextToDisplayableFormat(
           appearingTextToDisplay,
-          "REQUIRES SUBMARINE: ~GET A REPORT ON HOW MANY SHIP PIECES EXIST WITHIN UP TO 10 CHOSEN TILES ~NO COOLDOWN",
-          canvas.views.drawer.sections[2]
+          "Requires Submarine: ~Get Report On Number Of Ship Pieces Within Up To 10 Chosen Tiles. ~ ~No Cooldown.",
+          canvas.views.drawer.sections[1],
+          offsets
         );
         break;
       }
       case "airstrike": {
         transformTextToDisplayableFormat(
           appearingTextToDisplay,
-          "REQUIRES CARRIER: ~START A BOMBING RUN ALONG THE PATH OF YOUR CARRIER (6 TILES). ~5 TURN COOLDOWN",
-          canvas.views.drawer.sections[2]
+          `Requires Carrier: ~Start A Bombing Run Along The Path Of Your Carrier (6 Tiles). ~ ~${CooldownLimits.airstrike} Turn Cooldown.`,
+          canvas.views.drawer.sections[1],
+          offsets
         );
         break;
       }
       case "mines": {
         transformTextToDisplayableFormat(
           appearingTextToDisplay,
-          "REQUIRES CRUISER OR BATTLESHIP: ~DENONATE A LARGE BLAST IN A SINGLE AREA (5 TILES). ~3 TURN COOLDOWN",
-          canvas.views.drawer.sections[2]
+          `Requires Cruiser Or Battleship: ~Detonate A Large Blast In A Single Area (5 Tiles). ~ ~${CooldownLimits.mines} Turn Cooldown.`,
+          canvas.views.drawer.sections[1],
+          offsets
         );
         break;
       }
@@ -1630,7 +1829,7 @@ const game = (): Game => {
     {
       transformTextToDisplayableFormat(
         textToDisplay,
-        ` Please Swap Control To Player ${playerTurn + 1} ~Click or Tap Anywhere When Ready`,
+        ` Please Swap Control To Player ${playerTurn + 1} ~ ~Click or Tap Anywhere When Ready`,
         {
           start: new Point(canvas.trueSize.width / 2 - 120, canvas.trueSize.height / 2 - 7),
           end: new Point(10000, 10000),
@@ -1644,7 +1843,7 @@ const game = (): Game => {
     if (opponentTurnHistory.length === 0) {
       transformTextToDisplayableFormat(
         appearingTextToDisplay,
-        "The Enemy Is Near! Vision Is Limited. Orders Are To Fire And Listen For Hits!",
+        "The Enemy Is Near! ~ ~Vision Is Limited. ~ ~Orders Are To Fire And Listen For Hits!",
         canvas.views.drawer.sections[0]
       );
     } else {
@@ -1723,7 +1922,7 @@ const game = (): Game => {
     if (playerHistory.length === 0) {
       transformTextToDisplayableFormat(
         appearingTextToDisplay,
-        "The Enemy Is Near! Vision Is Limited. Orders Are To Fire And Listen For Hits!",
+        "The Enemy Is Near! ~ ~Vision Is Limited. ~ ~Orders Are To Fire And Listen For Hits!",
         canvas.views.drawer.sections[0]
       );
     } else {
@@ -1797,12 +1996,58 @@ const game = (): Game => {
       }
     }
   }
+  function readyTextForAttack() {
+    transformTextToDisplayableFormat(textToDisplay, "Choose Your Attack:", canvas.views.drawer.sections[0]);
+  }
+  function readyTextForFleetStatus() {
+    const ShipTypes: Array<ShipType> = ["carrier", "battleship", "cruiser", "submarine", "destroyer"];
+    const playerFleetStatus: Array<{ shipType: ShipType; alive: boolean }> = ShipTypes.map((ship) => {
+      return {
+        shipType: ship,
+        alive: boards[playerTurn].isShipAlive(ship),
+      };
+    });
+    const enemyFleetStatus: Array<{ shipType: ShipType; alive: boolean }> = ShipTypes.map((ship) => {
+      return {
+        shipType: ship,
+        alive: boards[getEnemyTurn()].isShipAlive(ship),
+      };
+    });
+    let playerMessage = "Player Fleet: ~";
+    playerFleetStatus.forEach((status) => {
+      if (status.alive) {
+        playerMessage += ` ${status.shipType} ~`;
+      }
+    });
+    let enemyMessage = "Enemy Fleet: ~";
+    enemyFleetStatus.forEach((status) => {
+      if (status.alive) {
+        enemyMessage += ` ${status.shipType} ~`;
+      }
+    });
+    transformTextToDisplayableFormat(textToDisplay, playerMessage, canvas.views.drawer.sections[2], { x: 3, y: 3 });
+    transformTextToDisplayableFormat(textToDisplay, enemyMessage, canvas.views.drawer.sections[2], { x: 3, y: 63 });
+  }
   //!UTILITY
   function convertPointToCoords(point: Point): string {
     return `(${String.fromCharCode(point.x + 65)},${point.y + 1})`;
   }
   function getEnemyTurn(): number {
     return (playerTurn + 1) % 2;
+  }
+  function hitTargetedTiles(): void {
+    const player1Turn = Turns[0][currentTurn];
+    const player2Turn = Turns[1][currentTurn];
+    if (player1Turn.attackType !== "radar") {
+      player1Turn.targetedTiles.forEach((tile) => {
+        boards[1].target(tile);
+      });
+    }
+    if (player2Turn.attackType !== "radar") {
+      player2Turn.targetedTiles.forEach((tile) => {
+        boards[0].target(tile);
+      });
+    }
   }
   return {
     getGameConfig,
