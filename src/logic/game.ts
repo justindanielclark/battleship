@@ -149,7 +149,7 @@ const game = (): Game => {
     new Board(gameConfig.boardConfig.xSize, gameConfig.boardConfig.ySize),
     new Board(gameConfig.boardConfig.xSize, gameConfig.boardConfig.ySize),
   ];
-  boards[0].addShip(new Point(0, 0), new Ship("carrier", "EW"));
+  boards[0].addShip(new Point(5, 5), new Ship("carrier", "NS"));
   boards[0].addShip(new Point(0, 1), new Ship("battleship", "EW"));
   boards[0].addShip(new Point(0, 2), new Ship("cruiser", "EW"));
   boards[0].addShip(new Point(0, 3), new Ship("submarine", "EW"));
@@ -191,7 +191,6 @@ const game = (): Game => {
   let nextState: GameState;
   let playerTurn = 0;
   let currentTurn = 0;
-  let opponent: "human" | "computer";
   const currentScene = sceneBuilder();
   const Turns: [Array<Turn>, Array<Turn>] = [
     [
@@ -264,7 +263,6 @@ const game = (): Game => {
   let currentDraggedObject: DraggableObject | undefined;
   // TILES
   const validTilesForPlacement: Array<{ loc: Point; valid: boolean }> = [];
-  let targetedTiles: Array<Point>;
   const highlightTiles: Array<Point> = [];
   const altHighlightTiles: Array<Point> = [];
   // TEXT
@@ -322,9 +320,6 @@ const game = (): Game => {
       }
       case "defensiveTurnReview": {
         readyTextForDefensiveTurnReview();
-        if (currentTurn > 0) {
-          targetedTiles = Turns[getEnemyTurn()][currentTurn - 1].targetedTiles;
-        }
         createButton("green", "PROCEED", new Point(35, 90), handleConfirmButton);
         addClickableObjectsToScene(currentScene);
         addTileDesignationsToScene(currentScene);
@@ -334,9 +329,6 @@ const game = (): Game => {
       }
       case "offensiveTurnReview": {
         readyTextForOffensiveTurnReview();
-        if (currentTurn > 0) {
-          targetedTiles = Turns[playerTurn][currentTurn - 1].targetedTiles;
-        }
         createButton("green", "PROCEED", new Point(35, 90), handleConfirmButton);
         addClickableObjectsToScene(currentScene);
         addTileDesignationsToScene(currentScene);
@@ -404,12 +396,13 @@ const game = (): Game => {
         createButton("red", "Cancel", new Point(5, 100), handleCancelButton);
         transformTextToDisplayableFormat(appearingTextToDisplay, textMessage, canvas.views.drawer.sections[0]);
         readyTextForFleetStatus();
+        readyHighlightTilesForAttackAirstrike();
         addTileDesignationsToScene(currentScene);
         addEnemyBoardToScene(currentScene, boards[getEnemyTurn()]);
         addTextToScene(currentScene);
         addAppearingTextToScene(currentScene);
         addClickableObjectsToScene(currentScene);
-
+        addHighlightTilesToScene(currentScene);
         break;
       }
     }
@@ -632,7 +625,7 @@ const game = (): Game => {
             resetAppearingText();
             transformTextToDisplayableFormat(
               appearingTextToDisplay,
-              "You Are Required To Place All Ships Before Pressing Confirm.".toUpperCase(),
+              "You Are Required To Place All Ships Before Pressing Confirm.",
               canvas.views.drawer.sections[0]
             );
           }
@@ -662,8 +655,8 @@ const game = (): Game => {
             const hitTiles = altHighlightTiles.filter((tile) => {
               return boards[getEnemyTurn()].isOccupied(tile);
             });
-            const targetedTiles = [...altHighlightTiles];
-            Turns[playerTurn].push({ attackType: "salvo", hitTiles, targetedTiles });
+            const targeted = altHighlightTiles.splice(0, altHighlightTiles.length);
+            Turns[playerTurn].push({ attackType: "salvo", hitTiles, targetedTiles: targeted });
           }
           break;
         }
@@ -703,6 +696,11 @@ const game = (): Game => {
             const targetedTiles = [...altHighlightTiles];
             Turns[playerTurn].push({ attackType: "mines", hitTiles, targetedTiles });
           }
+          break;
+        }
+        case "attack-airstrike": {
+          //todo
+          break;
         }
       }
     }
@@ -722,6 +720,11 @@ const game = (): Game => {
         }
         case "attack-mines": {
           emptyAltHighlightTiles();
+          setState("attack");
+          break;
+        }
+        case "attack-airstrike": {
+          emptyHighlightTiles();
           setState("attack");
           break;
         }
@@ -749,6 +752,11 @@ const game = (): Game => {
           break;
         }
         case "attack-mines": {
+          currentScene.flushZIndex(zIndexes.altHighlightTiles);
+          emptyAltHighlightTiles();
+          break;
+        }
+        case "attack-airstrike": {
           currentScene.flushZIndex(zIndexes.altHighlightTiles);
           emptyAltHighlightTiles();
           break;
@@ -798,8 +806,6 @@ const game = (): Game => {
           break;
         }
         case "attack-salvo": {
-          console.log({ highlightTiles });
-          console.log({ altHighlightTiles });
           if (isWithinBoardTiles(clickedPoint)) {
             const boardLoc = getTileAtLocation(clickedPoint);
             const hasAlreadyBeenTargeted = boards[getEnemyTurn()].getTargeted(boardLoc);
@@ -855,6 +861,17 @@ const game = (): Game => {
           } else {
             ifHoveringOverClickableExecuteClickableFunc();
           }
+          break;
+        }
+        case "attack-airstrike": {
+          if (isWithinBoardTiles(clickedPoint)) {
+            if (highlightTiles.length > 0 && altHighlightTiles.length === 0) {
+              //!
+            }
+          } else {
+            ifHoveringOverClickableExecuteClickableFunc();
+          }
+          break;
         }
       }
     }
@@ -1073,6 +1090,16 @@ const game = (): Game => {
         mouse.isHoveringOverClickable = isHoveringOverClickable(checkPoint).found;
         highlightUntargetedTilesForBlast(checkPoint);
         break;
+      }
+      case "attack-airstrike": {
+        const checkPoint = new Point(trueX, trueY);
+        mouse.isHoveringOverClickable = isHoveringOverClickable(checkPoint).found;
+        if (isWithinBoardTiles(checkPoint)) {
+          const tile = getTileAtLocation(checkPoint);
+          if (isWithinCarrierRange(tile)) {
+            //todo
+          }
+        }
       }
     }
     function highlightUntargetedTile(checkPoint: Point) {
@@ -1427,14 +1454,17 @@ const game = (): Game => {
         }
       }
     }
-    if (targetedTiles && targetedTiles.length > 0) {
-      targetedTiles.forEach((tile) => {
-        const drawPoint = new Point(
-          tile.x * 16 + main.boardPosition.start.x + 16,
-          tile.y * 16 + main.boardPosition.start.y + 16
-        );
-        scene.addImgToScene(zIndexes.highlightTiles, sprites.model.highlightTiles[(tile.x + tile.y) % 2], drawPoint);
-      });
+    if (currentTurn > 0) {
+      const targetedTiles = Turns[getEnemyTurn()][currentTurn - 1].targetedTiles.map((tile) => tile.deepCopy());
+      if (targetedTiles && targetedTiles.length > 0) {
+        targetedTiles.forEach((tile) => {
+          const drawPoint = new Point(
+            tile.x * 16 + main.boardPosition.start.x + 16,
+            tile.y * 16 + main.boardPosition.start.y + 16
+          );
+          scene.addImgToScene(zIndexes.highlightTiles, sprites.model.highlightTiles[(tile.x + tile.y) % 2], drawPoint);
+        });
+      }
     }
   }
   function addEnemyBoardToScene(scene: SceneBuilder, board: Board): void {
@@ -1462,14 +1492,17 @@ const game = (): Game => {
         }
       }
     }
-    if (targetedTiles && targetedTiles.length > 0) {
-      targetedTiles.forEach((tile) => {
-        const drawPoint = new Point(
-          tile.x * 16 + main.boardPosition.start.x + 16,
-          tile.y * 16 + main.boardPosition.start.y + 16
-        );
-        scene.addImgToScene(zIndexes.highlightTiles, sprites.model.highlightTiles[(tile.x + tile.y) % 2], drawPoint);
-      });
+    if (currentTurn > 0 && state === "offensiveTurnReview") {
+      const targetedTiles = Turns[playerTurn][currentTurn - 1].targetedTiles.map((tile) => tile.deepCopy());
+      if (targetedTiles && targetedTiles.length > 0) {
+        targetedTiles.forEach((tile) => {
+          const drawPoint = new Point(
+            tile.x * 16 + main.boardPosition.start.x + 16,
+            tile.y * 16 + main.boardPosition.start.y + 16
+          );
+          scene.addImgToScene(zIndexes.highlightTiles, sprites.model.highlightTiles[(tile.x + tile.y) % 2], drawPoint);
+        });
+      }
     }
   }
   function addDraggableObjectsToScene(scene: SceneBuilder): void {
@@ -2027,6 +2060,99 @@ const game = (): Game => {
     });
     transformTextToDisplayableFormat(textToDisplay, playerMessage, canvas.views.drawer.sections[2], { x: 3, y: 3 });
     transformTextToDisplayableFormat(textToDisplay, enemyMessage, canvas.views.drawer.sections[2], { x: 3, y: 63 });
+  }
+  function readyHighlightTilesForAttackAirstrike() {
+    let carrier;
+    let i = 0;
+    const fleet = boards[playerTurn].getFleet();
+    const { xSize, ySize } = gameConfig.boardConfig;
+    while (i < fleet.length && carrier === undefined) {
+      if (fleet[i].ship.shipType === "carrier") {
+        carrier = fleet[i];
+      }
+      i++;
+    }
+    if (carrier) {
+      const orientation = carrier.ship.orientation;
+      let chooseTilesToHighlightFunction: (startLoc: Point) => void;
+      if (orientation === "EW") {
+        chooseTilesToHighlightFunction = (startLoc) => {
+          const y = startLoc.y;
+          const yAbove = y === 0 ? ySize - 1 : y - 1;
+          const yBelow = y === ySize - 1 ? 0 : y + 1;
+          for (let x = 0; x < xSize; x++) {
+            const centerPoint = new Point(x, y);
+            const abovePoint = new Point(x, yAbove);
+            const belowPoint = new Point(x, yBelow);
+            if (!boards[getEnemyTurn()].getTargeted(centerPoint)) {
+              highlightTiles.push(centerPoint);
+            }
+            if (!boards[getEnemyTurn()].getTargeted(abovePoint)) {
+              highlightTiles.push(abovePoint);
+            }
+            if (!boards[getEnemyTurn()].getTargeted(belowPoint)) {
+              highlightTiles.push(belowPoint);
+            }
+          }
+        };
+      } else {
+        chooseTilesToHighlightFunction = (startLoc) => {
+          const x = startLoc.x;
+          const xLeft = x === 0 ? xSize - 1 : x - 1;
+          const xRight = x === xSize - 1 ? 0 : x + 1;
+          for (let y = 0; y < ySize; y++) {
+            const centerPoint = new Point(x, y);
+            const leftPoint = new Point(xLeft, y);
+            const rightPoint = new Point(xRight, y);
+            if (!boards[getEnemyTurn()].getTargeted(centerPoint)) {
+              highlightTiles.push(centerPoint);
+            }
+            if (!boards[getEnemyTurn()].getTargeted(leftPoint)) {
+              highlightTiles.push(leftPoint);
+            }
+            if (!boards[getEnemyTurn()].getTargeted(rightPoint)) {
+              highlightTiles.push(rightPoint);
+            }
+          }
+        };
+      }
+      chooseTilesToHighlightFunction(carrier.startLoc);
+    }
+  }
+  function isWithinCarrierRange(point: Point): boolean {
+    let carrier;
+    let i = 0;
+    const fleet = boards[playerTurn].getFleet();
+    const { xSize, ySize } = gameConfig.boardConfig;
+    while (i < fleet.length && carrier === undefined) {
+      if (fleet[i].ship.shipType === "carrier") {
+        carrier = fleet[i];
+      }
+      i++;
+    }
+    if (carrier) {
+      const { x: shipX, y: shipY } = carrier.startLoc;
+      const { x, y } = point;
+      const orientation = carrier.ship.orientation;
+      if (orientation === "NS") {
+        if (x === 0) {
+          return x === shipX || x === xSize - 1 || x === shipX + 1;
+        } else if (x === xSize - 1) {
+          return x === shipX || x === shipX - 1 || x === 0;
+        } else {
+          return x === shipX || x === shipX - 1 || x === shipX + 1;
+        }
+      } else {
+        if (y === 0) {
+          return y === shipY || y === ySize - 1 || y === shipY + 1;
+        } else if (y === ySize - 1) {
+          return y === shipY || y === shipY - 1 || y === 0;
+        } else {
+          return y === shipY || y === shipY - 1 || y === shipY + 1;
+        }
+      }
+    }
+    return false;
   }
   //!UTILITY
   function convertPointToCoords(point: Point): string {
