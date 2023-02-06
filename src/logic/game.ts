@@ -60,6 +60,7 @@ type CanvasConfig = {
   scale: number;
 };
 type MouseInfo = {
+  hasClickedDuringAirstrike: boolean;
   isOnScreen: boolean;
   currentLoc: Point;
   isHoveringOverDraggable: boolean;
@@ -133,8 +134,8 @@ const zIndexes = {
 const game = (): Game => {
   const gameConfig: GameConfig = {
     boardConfig: {
-      xSize: 18,
-      ySize: 18,
+      xSize: 20,
+      ySize: 20,
     },
     updateSpeed: 16,
     appearingTextSpeed: 1, // Must Be Less Than 1
@@ -149,7 +150,7 @@ const game = (): Game => {
     new Board(gameConfig.boardConfig.xSize, gameConfig.boardConfig.ySize),
     new Board(gameConfig.boardConfig.xSize, gameConfig.boardConfig.ySize),
   ];
-  boards[0].addShip(new Point(5, 5), new Ship("carrier", "NS"));
+  boards[0].addShip(new Point(19, 11), new Ship("carrier", "NS"));
   boards[0].addShip(new Point(0, 1), new Ship("battleship", "EW"));
   boards[0].addShip(new Point(0, 2), new Ship("cruiser", "EW"));
   boards[0].addShip(new Point(0, 3), new Ship("submarine", "EW"));
@@ -218,6 +219,7 @@ const game = (): Game => {
   };
   // MOUSE AND CANVS
   const mouse: MouseInfo = {
+    hasClickedDuringAirstrike: false,
     isOnScreen: false,
     isHoveringOverAttackButton: false,
     isHoveringOverClickable: false,
@@ -390,6 +392,7 @@ const game = (): Game => {
         break;
       }
       case "attack-airstrike": {
+        mouse.hasClickedDuringAirstrike = false;
         const textMessage = "Airstrike: Pick a Strip of 7 Tiles Aligned with Your Carrier To Bomb!";
         createButton("green", "Confirm", new Point(5, 60), handleConfirmButton);
         createButton("red", "Reset", new Point(5, 80), handleResetButton);
@@ -487,7 +490,10 @@ const game = (): Game => {
         break;
       }
       case "attack-airstrike": {
-        currentScene.flushZIndex(zIndexes.reticule, zIndexes.highlightTiles, zIndexes.altHighlightTiles);
+        if (!mouse.hasClickedDuringAirstrike) {
+          currentScene.flushZIndex(zIndexes.altHighlightTiles);
+        }
+        currentScene.flushZIndex(zIndexes.reticule, zIndexes.highlightTiles);
         addAppearingTextToScene(currentScene);
         addHighlightTilesToScene(currentScene);
         addAltHighlightTilesToScene(currentScene);
@@ -551,6 +557,7 @@ const game = (): Game => {
             if (playerTurn === 0) {
               hitTargetedTiles();
               currentTurn++;
+              reduceCooldowns();
             }
             nextState = currentTurn === 0 ? "offensiveTurnReview" : "defensiveTurnReview";
             setState("playerSwapScreen");
@@ -561,7 +568,9 @@ const game = (): Game => {
             if (playerTurn === 0) {
               hitTargetedTiles();
               currentTurn++;
+              reduceCooldowns();
             }
+            Cooldowns[getEnemyTurn()].mines = CooldownLimits.mines;
             nextState = currentTurn === 0 ? "offensiveTurnReview" : "defensiveTurnReview";
             setState("playerSwapScreen");
             break;
@@ -571,6 +580,7 @@ const game = (): Game => {
             if (playerTurn === 0) {
               hitTargetedTiles();
               currentTurn++;
+              reduceCooldowns();
             }
             nextState = currentTurn === 0 ? "offensiveTurnReview" : "defensiveTurnReview";
             setState("playerSwapScreen");
@@ -581,7 +591,9 @@ const game = (): Game => {
             if (playerTurn === 0) {
               hitTargetedTiles();
               currentTurn++;
+              reduceCooldowns();
             }
+            Cooldowns[getEnemyTurn()].airstrike = CooldownLimits.airstrike;
             nextState = currentTurn === 0 ? "offensiveTurnReview" : "defensiveTurnReview";
             setState("playerSwapScreen");
             break;
@@ -692,15 +704,48 @@ const game = (): Game => {
           } else {
             transitioning = true;
             const hitTiles = altHighlightTiles.filter((tile) => {
-              return boards[getEnemyTurn()].isOccupied(tile);
+              const enemyBoard = boards[getEnemyTurn()];
+              const occupied = enemyBoard.getOccupied(tile);
+              if (occupied) {
+                return !occupied.damaged;
+              } else {
+                return false;
+              }
             });
-            const targetedTiles = [...altHighlightTiles];
+            const targetedTiles = altHighlightTiles.filter((tile) => {
+              const enemyBoard = boards[getEnemyTurn()];
+              return !enemyBoard.getTargeted(tile);
+            });
             Turns[playerTurn].push({ attackType: "mines", hitTiles, targetedTiles });
           }
           break;
         }
         case "attack-airstrike": {
-          //todo
+          if (altHighlightTiles.length === 0) {
+            currentScene.flushZIndex(zIndexes.appearingText);
+            resetAppearingText();
+            transformTextToDisplayableFormat(
+              appearingTextToDisplay,
+              "You Must Target A Strip of Tiles In Your Attack",
+              canvas.views.drawer.sections[0]
+            );
+          } else {
+            transitioning = true;
+            const hitTiles = altHighlightTiles.filter((tile) => {
+              const enemyBoard = boards[getEnemyTurn()];
+              const occupied = enemyBoard.getOccupied(tile);
+              if (occupied) {
+                return !occupied.damaged;
+              } else {
+                return false;
+              }
+            });
+            const targetedTiles = altHighlightTiles.filter((tile) => {
+              const enemyBoard = boards[getEnemyTurn()];
+              return !enemyBoard.getTargeted(tile);
+            });
+            Turns[playerTurn].push({ attackType: "airstrike", hitTiles, targetedTiles });
+          }
           break;
         }
       }
@@ -760,6 +805,7 @@ const game = (): Game => {
         case "attack-airstrike": {
           currentScene.flushZIndex(zIndexes.altHighlightTiles);
           emptyAltHighlightTiles();
+          mouse.hasClickedDuringAirstrike = false;
           break;
         }
       }
@@ -866,9 +912,7 @@ const game = (): Game => {
         }
         case "attack-airstrike": {
           if (isWithinBoardTiles(clickedPoint)) {
-            if (highlightTiles.length > 0 && altHighlightTiles.length === 0) {
-              //!
-            }
+            mouse.hasClickedDuringAirstrike = true;
           } else {
             ifHoveringOverClickableExecuteClickableFunc();
           }
@@ -1095,44 +1139,49 @@ const game = (): Game => {
       case "attack-airstrike": {
         const checkPoint = new Point(trueX, trueY);
         mouse.isHoveringOverClickable = isHoveringOverClickable(checkPoint).found;
-        if (isWithinBoardTiles(checkPoint)) {
-          const tile = getTileAtLocation(checkPoint);
-          const { x, y } = tile;
-          const { xSize, ySize } = gameConfig.boardConfig;
-          if (isWithinCarrierRange(tile)) {
-            const carrier = boards[playerTurn].getFleet().reduce((acc, cur) => {
-              if (cur.ship.shipType === "carrier") {
-                return cur;
+        if (!mouse.hasClickedDuringAirstrike) {
+          if (altHighlightTiles.length > 0) {
+            emptyAltHighlightTiles();
+          }
+          if (isWithinBoardTiles(checkPoint)) {
+            const tile = getTileAtLocation(checkPoint);
+            const { x, y } = tile;
+            const { xSize, ySize } = gameConfig.boardConfig;
+            if (isWithinCarrierRange(tile)) {
+              const carrier = boards[playerTurn].getFleet().reduce((acc, cur) => {
+                if (cur.ship.shipType === "carrier") {
+                  return cur;
+                } else {
+                  return acc;
+                }
+              });
+              const consideredTiles = [];
+              const orientation = carrier.ship.orientation;
+              if (orientation === "NS") {
+                consideredTiles.push(
+                  new Point(x, y - 3 < 0 ? ySize + (y - 3) : y - 3),
+                  new Point(x, y - 2 < 0 ? ySize + (y - 2) : y - 2),
+                  new Point(x, y - 1 < 0 ? ySize + (y - 1) : y - 1),
+                  new Point(x, y),
+                  new Point(x, y + 1 >= ySize ? y + 1 - ySize : y + 1),
+                  new Point(x, y + 2 >= ySize ? y + 2 - ySize : y + 2),
+                  new Point(x, y + 3 >= ySize ? y + 3 - ySize : y + 3)
+                );
               } else {
-                return acc;
+                consideredTiles.push(
+                  new Point(x - 3 < 0 ? xSize + (x - 3) : x - 3, y),
+                  new Point(x - 2 < 0 ? xSize + (x - 2) : x - 2, y),
+                  new Point(x - 1 < 0 ? xSize + (x - 1) : x - 1, y),
+                  new Point(x, y),
+                  new Point(x + 1 >= xSize ? x + 1 - xSize : x + 1, y),
+                  new Point(x + 2 >= xSize ? x + 2 - xSize : x + 2, y),
+                  new Point(x + 3 >= xSize ? x + 3 - xSize : x + 3, y)
+                );
               }
-            });
-            const consideredTiles = [];
-            const orientation = carrier.ship.orientation;
-            if (orientation === "NS") {
-              consideredTiles.push(
-                new Point(x, y - 3 < 0 ? ySize + (y - 3) : y - 3),
-                new Point(x, y - 2 < 0 ? ySize + (y - 2) : y - 2),
-                new Point(x, y - 1 < 0 ? ySize + (y - 1) : y - 1),
-                new Point(x, y),
-                new Point(x, y + 1 >= ySize ? ySize - (y + 1) : y + 1),
-                new Point(x, y + 2 >= ySize ? ySize - (y + 2) : y + 2),
-                new Point(x, y + 3 >= ySize ? ySize - (y + 3) : y + 3)
-              );
-            } else {
-              consideredTiles.push(
-                new Point(x - 3 < 0 ? xSize + (x - 3) : x - 3, y),
-                new Point(x - 2 < 0 ? xSize + (x - 2) : x - 2, y),
-                new Point(x - 1 < 0 ? xSize + (x - 1) : x - 1, y),
-                new Point(x, y),
-                new Point(x + 1 >= xSize ? xSize - (x + 1) : x + 1, y),
-                new Point(x + 2 >= xSize ? xSize - (x + 2) : x + 2, y),
-                new Point(x + 3 >= xSize ? xSize - (x + 3) : x + 3, y)
-              );
+              consideredTiles.forEach((tile) => {
+                altHighlightTiles.push(tile.deepCopy());
+              });
             }
-            consideredTiles.forEach((tile) => {
-              altHighlightTiles.push(tile.deepCopy());
-            });
           }
         }
       }
@@ -1892,7 +1941,7 @@ const game = (): Game => {
   function emptyAltHighlightTiles(): void {
     altHighlightTiles.splice(0, altHighlightTiles.length);
   }
-  ///!SCENE SPECIFIC
+  //!SCENE SPECIFIC
   function readyTextForPlayerSwapScene() {
     {
       transformTextToDisplayableFormat(
@@ -1951,37 +2000,42 @@ const game = (): Game => {
           break;
         }
       }
-      if (targetedTiles.length === 0) {
-        transformTextToDisplayableFormat(
-          appearingTextToDisplay,
-          "The Enemy Targetted None Of Our Sectors Location",
-          canvas.views.drawer.sections[1]
-        );
-      } else {
-        let message = "We Were Targeted In The Following Locations: ~";
-        for (let i = 0; i < targetedTiles.length; i++) {
-          message += convertPointToCoords(targetedTiles[i]);
-          if (i !== targetedTiles.length - 1) {
-            message += ", ";
-          }
+      let message = "We Were Targeted In The Following Locations: ~";
+      for (let i = 0; i < targetedTiles.length; i++) {
+        message += convertPointToCoords(targetedTiles[i]);
+        if (i !== targetedTiles.length - 1) {
+          message += ", ";
         }
-        transformTextToDisplayableFormat(appearingTextToDisplay, message, canvas.views.drawer.sections[1]);
       }
+      transformTextToDisplayableFormat(appearingTextToDisplay, message, canvas.views.drawer.sections[1]);
       if (hitTiles.length === 0) {
-        transformTextToDisplayableFormat(
-          appearingTextToDisplay,
-          "We Report No Hits To Any Of The Ships In Our Fleet",
-          canvas.views.drawer.sections[2]
-        );
-      } else {
-        let message = "We Were Hit In The Following Locations: ~";
-        for (let i = 0; i < hitTiles.length; i++) {
-          message += convertPointToCoords(hitTiles[i]);
-          if (i !== hitTiles.length - 1) {
-            message += ", ";
-          }
+        if (!(opponentActions.attackType === "radar")) {
+          transformTextToDisplayableFormat(
+            appearingTextToDisplay,
+            "We Report No Hits To Any Of The Ships In Our Fleet",
+            canvas.views.drawer.sections[2]
+          );
+        } else {
+          transformTextToDisplayableFormat(
+            appearingTextToDisplay,
+            "Our Ships Remained Undetected",
+            canvas.views.drawer.sections[2]
+          );
         }
-        transformTextToDisplayableFormat(appearingTextToDisplay, message, canvas.views.drawer.sections[2]);
+      } else {
+        if (!(opponentActions.attackType === "radar")) {
+          let message = "We Were Hit In The Following Locations: ~";
+          for (let i = 0; i < hitTiles.length; i++) {
+            message += convertPointToCoords(hitTiles[i]);
+            if (i !== hitTiles.length - 1) {
+              message += ", ";
+            }
+          }
+          transformTextToDisplayableFormat(appearingTextToDisplay, message, canvas.views.drawer.sections[2]);
+        } else {
+          const message = `They Pinged Our Ships In ${opponentActions.hitTiles.length} Of ${opponentActions.targetedTiles.length} Checked Locations`;
+          transformTextToDisplayableFormat(appearingTextToDisplay, message, canvas.views.drawer.sections[2]);
+        }
       }
     }
   }
@@ -2030,37 +2084,42 @@ const game = (): Game => {
           break;
         }
       }
-      if (targetedTiles.length === 0) {
-        transformTextToDisplayableFormat(
-          appearingTextToDisplay,
-          "We Targeted None Of The Enemy's Locations",
-          canvas.views.drawer.sections[1]
-        );
-      } else {
-        let message = "We Targeted The Enemy In The Following Locations: ~";
-        for (let i = 0; i < targetedTiles.length; i++) {
-          message += convertPointToCoords(targetedTiles[i]);
-          if (i !== targetedTiles.length - 1) {
-            message += ", ";
-          }
+      let message = "We Targeted The Enemy In The Following Locations: ~";
+      for (let i = 0; i < targetedTiles.length; i++) {
+        message += convertPointToCoords(targetedTiles[i]);
+        if (i !== targetedTiles.length - 1) {
+          message += ", ";
         }
-        transformTextToDisplayableFormat(appearingTextToDisplay, message, canvas.views.drawer.sections[1]);
       }
+      transformTextToDisplayableFormat(appearingTextToDisplay, message, canvas.views.drawer.sections[1]);
       if (hitTiles.length === 0) {
-        transformTextToDisplayableFormat(
-          appearingTextToDisplay,
-          "We Were Unable To Record A Single Hit",
-          canvas.views.drawer.sections[2]
-        );
-      } else {
-        let message = "The Enemy Was Struck In The Following Locations: ~";
-        for (let i = 0; i < hitTiles.length; i++) {
-          message += convertPointToCoords(hitTiles[i]);
-          if (i !== hitTiles.length - 1) {
-            message += ", ";
-          }
+        if (playerActions.attackType !== "radar") {
+          transformTextToDisplayableFormat(
+            appearingTextToDisplay,
+            "We Were Unable To Record A Single Hit!",
+            canvas.views.drawer.sections[2]
+          );
+        } else {
+          transformTextToDisplayableFormat(
+            appearingTextToDisplay,
+            "We Were Unable To Detect The Enemy In Any Of The Scanned Locations!",
+            canvas.views.drawer.sections[2]
+          );
         }
-        transformTextToDisplayableFormat(appearingTextToDisplay, message, canvas.views.drawer.sections[2]);
+      } else {
+        if (playerActions.attackType !== "radar") {
+          let message = "The Enemy Was Struck In The Following Locations: ~";
+          for (let i = 0; i < hitTiles.length; i++) {
+            message += convertPointToCoords(hitTiles[i]);
+            if (i !== hitTiles.length - 1) {
+              message += ", ";
+            }
+          }
+          transformTextToDisplayableFormat(appearingTextToDisplay, message, canvas.views.drawer.sections[2]);
+        } else {
+          const message = `We Pinged The Enemy In ${playerActions.hitTiles.length} of ${playerActions.targetedTiles.length} Of Checked Tiles`;
+          transformTextToDisplayableFormat(appearingTextToDisplay, message, canvas.views.drawer.sections[2]);
+        }
       }
     }
   }
@@ -2171,17 +2230,17 @@ const game = (): Game => {
       const orientation = carrier.ship.orientation;
       if (orientation === "NS") {
         if (x === 0) {
-          return x === shipX || x === xSize - 1 || x === shipX + 1;
+          return x === shipX || x === shipX - 1 || shipX === xSize - 1;
         } else if (x === xSize - 1) {
-          return x === shipX || x === shipX - 1 || x === 0;
+          return x === shipX || x === shipX + 1 || shipX === 0;
         } else {
           return x === shipX || x === shipX - 1 || x === shipX + 1;
         }
       } else {
         if (y === 0) {
-          return y === shipY || y === ySize - 1 || y === shipY + 1;
+          return y === shipY || y === shipY - 1 || shipY === ySize - 1;
         } else if (y === ySize - 1) {
-          return y === shipY || y === shipY - 1 || y === 0;
+          return y === shipY || y === shipY + 1 || shipY === 0;
         } else {
           return y === shipY || y === shipY - 1 || y === shipY + 1;
         }
@@ -2209,6 +2268,16 @@ const game = (): Game => {
         boards[0].target(tile);
       });
     }
+  }
+  function reduceCooldowns(): void {
+    Cooldowns.forEach((Cooldown) => {
+      if (Cooldown.airstrike > 0) {
+        Cooldown.airstrike--;
+      }
+      if (Cooldown.mines > 0) {
+        Cooldown.mines--;
+      }
+    });
   }
   return {
     getGameConfig,
