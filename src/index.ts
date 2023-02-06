@@ -25,7 +25,7 @@ function update(timestamp: number) {
     prevUpdate = timestamp;
     if (game.areAssetsLoaded()) {
       if (game.getState() === "initializing") {
-        game.setState("attack");
+        game.setState("titleScreen");
       }
       game.update();
       renderer.render(game.getScene());

@@ -1,9 +1,16 @@
 declare module "*.png";
+declare module "*.wav";
 
 type CanvasData = {
   orientation: "portrait" | "landscape";
   width: number;
   height: number;
+};
+type MusicWavs = {
+  loaded: boolean;
+  PunchOut: HTMLAudioElement;
+  Voyage: HTMLAudioElement;
+  SonicBoom: HTMLAudioElement;
 };
 type IntroSprites = {
   loaded: boolean;

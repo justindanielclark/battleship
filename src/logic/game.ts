@@ -2,6 +2,8 @@ import Board from "./data_storage/Board";
 import Point from "./data_storage/Point";
 import modelSprites from "../assets/ModelSprites";
 import textSprites from "../assets/TextSprites";
+import introSprites from "../assets/IntroSprites";
+import musicLoader from "../assets/Music";
 import { sceneBuilder, Scene, SceneBuilder } from "./display/sceneBuilder";
 import Ship, { Orientation, ShipPart, ShipType } from "./data_storage/Ship";
 type AttackTypes = "salvo" | "airstrike" | "radar" | "mines";
@@ -60,6 +62,7 @@ type CanvasConfig = {
   scale: number;
 };
 type MouseInfo = {
+  hasEverClicked: boolean;
   hasClickedDuringAirstrike: boolean;
   isOnScreen: boolean;
   currentLoc: Point;
@@ -130,12 +133,11 @@ const zIndexes = {
   transitionTiles: 9,
   reticule: 10,
 };
-
 const game = (): Game => {
   const gameConfig: GameConfig = {
     boardConfig: {
-      xSize: 20,
-      ySize: 20,
+      xSize: 15,
+      ySize: 15,
     },
     updateSpeed: 16,
     appearingTextSpeed: 1, // Must Be Less Than 1
@@ -145,47 +147,13 @@ const game = (): Game => {
   const sprites = {
     model: modelSprites(),
     text: textSprites(),
+    intro: introSprites(),
   };
+  const music = musicLoader();
   const boards: Array<Board> = [
     new Board(gameConfig.boardConfig.xSize, gameConfig.boardConfig.ySize),
     new Board(gameConfig.boardConfig.xSize, gameConfig.boardConfig.ySize),
   ];
-  boards[0].addShip(new Point(19, 11), new Ship("carrier", "NS"));
-  boards[0].addShip(new Point(0, 1), new Ship("battleship", "EW"));
-  boards[0].addShip(new Point(0, 2), new Ship("cruiser", "EW"));
-  boards[0].addShip(new Point(0, 3), new Ship("submarine", "EW"));
-  boards[0].addShip(new Point(0, 4), new Ship("destroyer", "EW"));
-  // boards[0].target(new Point(0, 0));
-  // boards[0].target(new Point(1, 0));
-  // boards[0].target(new Point(2, 0));
-  // boards[0].target(new Point(3, 0));
-  // boards[0].target(new Point(4, 0));
-  // boards[0].target(new Point(0, 3));
-  // boards[0].target(new Point(1, 3));
-  // boards[0].target(new Point(2, 3));
-  // boards[0].target(new Point(0, 1));
-  // boards[0].target(new Point(1, 1));
-  // boards[0].target(new Point(2, 1));
-  // boards[0].target(new Point(3, 1));
-  // boards[0].target(new Point(0, 2));
-  // boards[0].target(new Point(1, 2));
-  // boards[0].target(new Point(2, 2));
-
-  boards[1].addShip(new Point(0, 0), new Ship("carrier", "NS"));
-  boards[1].addShip(new Point(1, 0), new Ship("battleship", "NS"));
-  boards[1].addShip(new Point(2, 0), new Ship("cruiser", "NS"));
-  boards[1].addShip(new Point(3, 0), new Ship("submarine", "NS"));
-  boards[1].addShip(new Point(4, 0), new Ship("destroyer", "NS"));
-  // boards[1].target(new Point(12, 12));
-  // boards[1].target(new Point(13, 13));
-  // boards[1].target(new Point(12, 13));
-  // boards[1].target(new Point(12, 14));
-  // boards[1].target(new Point(12, 15));
-  // boards[1].target(new Point(12, 16));
-  // boards[1].target(new Point(0, 0));
-  // boards[1].target(new Point(0, 1));
-  // boards[1].target(new Point(1, 1));
-
   //! DECLARATIONS(Start)
   // GAMESTATE
   let state: GameState = "initializing";
@@ -219,6 +187,7 @@ const game = (): Game => {
   };
   // MOUSE AND CANVS
   const mouse: MouseInfo = {
+    hasEverClicked: false,
     hasClickedDuringAirstrike: false,
     isOnScreen: false,
     isHoveringOverAttackButton: false,
@@ -300,6 +269,10 @@ const game = (): Game => {
     }
     currentScene.flushAll();
     switch (state) {
+      case "titleScreen": {
+        addIntro(currentScene);
+        break;
+      }
       case "settingPieces": {
         initializeDraggableObjects();
         createButton("green", "Confirm", new Point(5, 90), handleConfirmButton);
@@ -408,6 +381,9 @@ const game = (): Game => {
         addHighlightTilesToScene(currentScene);
         break;
       }
+      case "end": {
+        readyTextForGameEnd(checkIfGameWouldEnd());
+      }
     }
   }
   //EVERY FRAME
@@ -416,6 +392,11 @@ const game = (): Game => {
       handleTransition();
     }
     switch (state) {
+      case "titleScreen": {
+        currentScene.flushZIndex(zIndexes.reticule);
+        drawMouse();
+        break;
+      }
       case "settingPieces": {
         currentScene.flushZIndex(zIndexes.reticule, zIndexes.draggableItems, zIndexes.highlightTiles);
         addValidForPlacementTilesToScreen(currentScene);
@@ -500,6 +481,10 @@ const game = (): Game => {
         drawMouse();
         break;
       }
+      case "end": {
+        currentScene.flushZIndex(zIndexes.reticule);
+        drawMouse();
+      }
     }
     function drawMouse() {
       if (mouse.isOnScreen) {
@@ -532,15 +517,20 @@ const game = (): Game => {
       if (isTransitioningForward) {
         transitioningProgress = transitionLimits.upper;
         switch (state) {
+          case "titleScreen": {
+            nextState = "settingPieces";
+            setState("playerSwapScreen");
+            break;
+          }
           case "settingPieces": {
             if (playerTurn === 0) {
               playerTurn = 1;
-              setState("playerSwapScreen");
               nextState = "settingPieces";
+              setState("playerSwapScreen");
             } else {
               playerTurn = 0;
-              setState("playerSwapScreen");
               nextState = "offensiveTurnReview";
+              setState("playerSwapScreen");
             }
             break;
           }
@@ -553,49 +543,19 @@ const game = (): Game => {
             break;
           }
           case "attack-salvo": {
-            playerTurn = (playerTurn + 1) % 2;
-            if (playerTurn === 0) {
-              hitTargetedTiles();
-              currentTurn++;
-              reduceCooldowns();
-            }
-            nextState = currentTurn === 0 ? "offensiveTurnReview" : "defensiveTurnReview";
-            setState("playerSwapScreen");
+            attackTransition();
             break;
           }
           case "attack-mines": {
-            playerTurn = (playerTurn + 1) % 2;
-            if (playerTurn === 0) {
-              hitTargetedTiles();
-              currentTurn++;
-              reduceCooldowns();
-            }
-            Cooldowns[getEnemyTurn()].mines = CooldownLimits.mines;
-            nextState = currentTurn === 0 ? "offensiveTurnReview" : "defensiveTurnReview";
-            setState("playerSwapScreen");
+            attackTransition();
             break;
           }
           case "attack-radar": {
-            playerTurn = (playerTurn + 1) % 2;
-            if (playerTurn === 0) {
-              hitTargetedTiles();
-              currentTurn++;
-              reduceCooldowns();
-            }
-            nextState = currentTurn === 0 ? "offensiveTurnReview" : "defensiveTurnReview";
-            setState("playerSwapScreen");
+            attackTransition();
             break;
           }
           case "attack-airstrike": {
-            playerTurn = (playerTurn + 1) % 2;
-            if (playerTurn === 0) {
-              hitTargetedTiles();
-              currentTurn++;
-              reduceCooldowns();
-            }
-            Cooldowns[getEnemyTurn()].airstrike = CooldownLimits.airstrike;
-            nextState = currentTurn === 0 ? "offensiveTurnReview" : "defensiveTurnReview";
-            setState("playerSwapScreen");
+            attackTransition();
             break;
           }
         }
@@ -607,6 +567,27 @@ const game = (): Game => {
       isTransitioningForward = !isTransitioningForward;
     } else {
       addTransitionTilesToScene(currentScene);
+    }
+    function attackTransition() {
+      let next: GameState = "playerSwapScreen";
+      playerTurn = (playerTurn + 1) % 2;
+      if (playerTurn === 0) {
+        hitTargetedTiles();
+        currentTurn++;
+        reduceCooldowns();
+        const { player1IsAlive, player2IsAlive } = checkIfGameWouldEnd();
+        if (!player1IsAlive || !player2IsAlive) {
+          next = "end";
+        }
+      }
+      if (state === "attack-mines") {
+        Cooldowns[getEnemyTurn()].mines = CooldownLimits.mines;
+      }
+      if (state === "attack-airstrike") {
+        Cooldowns[getEnemyTurn()].airstrike = CooldownLimits.airstrike;
+      }
+      nextState = currentTurn === 0 ? "offensiveTurnReview" : "defensiveTurnReview";
+      setState(next);
     }
   }
   //!CONFIG AND GAMESTATE
@@ -624,7 +605,7 @@ const game = (): Game => {
     setupAfterStateChange();
   }
   function areAssetsLoaded(): boolean {
-    return sprites.model.loaded && sprites.text.loaded;
+    return sprites.model.loaded && sprites.text.loaded && sprites.intro.loaded && music.loaded;
   }
   //!INTERACTIVITY
   function handleConfirmButton() {
@@ -816,8 +797,23 @@ const game = (): Game => {
     const trueX = (mouseClickLocation.x - canvasData.left) / scale;
     const trueY = (mouseClickLocation.y - canvasData.top) / scale;
     const clickedPoint = new Point(trueX, trueY);
+    if (!mouse.hasEverClicked && music.loaded) {
+      const result = Math.floor(Math.random() * 3);
+      if (result === 0) {
+        music.Voyage.play();
+      } else if (result === 1) {
+        music.PunchOut.play();
+      } else {
+        music.SonicBoom.play();
+      }
+      mouse.hasEverClicked = true;
+    }
     if (!transitioning) {
       switch (state) {
+        case "titleScreen": {
+          transitioning = true;
+          break;
+        }
         case "settingPieces": {
           if (mouse.isHoveringOverDraggable) {
             currentDraggedObject = isHoveringOverDraggable(clickedPoint).draggableObj;
@@ -1347,6 +1343,11 @@ const game = (): Game => {
   }
   function redrawOnOrientationShift(): void {
     switch (state) {
+      case "titleScreen": {
+        currentScene.flushAll();
+        addIntro(currentScene);
+        break;
+      }
       case "settingPieces": {
         currentScene.flushZIndex(zIndexes.tiles, zIndexes.ships, zIndexes.text);
         addTileDesignationsToScene(currentScene);
@@ -1436,6 +1437,12 @@ const game = (): Game => {
         addAltHighlightTilesToScene(currentScene);
         break;
       }
+      case "end": {
+        currentScene.flushAll();
+        resetText();
+        readyTextForGameEnd(checkIfGameWouldEnd());
+        break;
+      }
     }
     function redrawAppearingText() {
       for (let i = 0; i < appearingTextToDisplayProgressLast; i++) {
@@ -1484,6 +1491,15 @@ const game = (): Game => {
   ///GENERIC
   function getScene(): Scene {
     return currentScene.getScene();
+  }
+  function addIntro(scene: SceneBuilder): void {
+    if (canvas.orientation === "landscape") {
+      scene.addImgToScene(zIndexes.background, sprites.intro.background, new Point(0, -60));
+      scene.addImgToScene(zIndexes.text, sprites.intro.text, new Point(142, 270));
+    } else {
+      scene.addImgToScene(zIndexes.background, sprites.intro.background, new Point(0, 0));
+      scene.addImgToScene(zIndexes.text, sprites.intro.text, new Point(22, 390));
+    }
   }
   function addTileDesignationsToScene(scene: SceneBuilder): void {
     const { main } = canvas.views;
@@ -2213,6 +2229,25 @@ const game = (): Game => {
       chooseTilesToHighlightFunction(carrier.startLoc);
     }
   }
+  function readyTextForGameEnd(args: { player1IsAlive: boolean; player2IsAlive: boolean }) {
+    if (args.player1IsAlive) {
+      transformTextToDisplayableFormat(textToDisplay, `Player 2 Loses!`, {
+        start: new Point(canvas.trueSize.width / 2 - 54, canvas.trueSize.height / 2 - 7),
+        end: new Point(10000, 10000),
+      });
+    } else if (args.player2IsAlive) {
+      transformTextToDisplayableFormat(textToDisplay, `Player 1 Loses!`, {
+        start: new Point(canvas.trueSize.width / 2 - 54, canvas.trueSize.height / 2 - 7),
+        end: new Point(10000, 10000),
+      });
+    } else {
+      transformTextToDisplayableFormat(textToDisplay, `It Is A Draw!`, {
+        start: new Point(canvas.trueSize.width / 2 - 46, canvas.trueSize.height / 2 - 7),
+        end: new Point(10000, 10000),
+      });
+    }
+    addTextToScene(currentScene);
+  }
   function isWithinCarrierRange(point: Point): boolean {
     let carrier;
     let i = 0;
@@ -2278,6 +2313,12 @@ const game = (): Game => {
         Cooldown.mines--;
       }
     });
+  }
+  function checkIfGameWouldEnd(): { player1IsAlive: boolean; player2IsAlive: boolean } {
+    return {
+      player1IsAlive: boards[0].isAlive(),
+      player2IsAlive: boards[1].isAlive(),
+    };
   }
   return {
     getGameConfig,

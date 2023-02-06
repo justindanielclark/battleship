@@ -1,4 +1,4 @@
-import TitleScreenText from "./TitleScreenText.png";
+import TitleScreenText from "./TitlescreenText.png";
 import Oceanbackground from "./Oceanbackground.png";
 
 const IntroSprites = (): IntroSprites => {
@@ -8,7 +8,7 @@ const IntroSprites = (): IntroSprites => {
   const TitleSpriteSheet = new Image();
   TitleSpriteSheet.src = Oceanbackground;
   TitleSpriteSheet.addEventListener("load", () => {
-    createImageBitmap(TitleSpriteSheet, 0, 0, 16, 16).then((sprite) => {
+    createImageBitmap(TitleSpriteSheet, 0, 0, 480, 480).then((sprite) => {
       Sprites.background = sprite;
       if (Sprites.text) {
         Sprites.loaded = true;
@@ -20,7 +20,7 @@ const IntroSprites = (): IntroSprites => {
   const TitleTextSpriteSheet = new Image();
   TitleTextSpriteSheet.src = TitleScreenText;
   TitleTextSpriteSheet.addEventListener("load", () => {
-    createImageBitmap(TitleTextSpriteSheet, 0, 0, 16, 16).then((sprite) => {
+    createImageBitmap(TitleTextSpriteSheet, 0, 0, 380, 70).then((sprite) => {
       Sprites.text = sprite;
       if (Sprites.background) {
         Sprites.loaded = true;
