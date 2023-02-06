@@ -1,0 +1,17 @@
+//! DECLARATIONS(Start)
+
+//! UPDATE CYCLE
+
+//! currently doesnot fire as touchend removes a 'touch' from e.touches. Need to implement touch tracking and only track the first touch if no other touches exist.
+
+//!CANVAS FUNCTIONS
+
+//!CONFIG AND GAMESTATE
+
+//!INTERACTIVITY
+
+//!SCENE FUNCTIONS
+
+//!SCENE SPECIFIC
+
+//!UTILITY
