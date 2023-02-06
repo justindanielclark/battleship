@@ -5,7 +5,11 @@ type CanvasData = {
   width: number;
   height: number;
 };
-
+type IntroSprites = {
+  loaded: boolean;
+  background: ImageBitmap;
+  text: ImageBitmap;
+};
 type ModelSprites = {
   loaded: boolean;
   reticule: Array<ImageBitmap>;
