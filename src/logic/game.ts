@@ -390,7 +390,7 @@ const game = (): Game => {
         break;
       }
       case "attack-airstrike": {
-        const textMessage = "Airstrike: Pick a Strip of Tiles Aligned with Your Carrier To Bomb!";
+        const textMessage = "Airstrike: Pick a Strip of 7 Tiles Aligned with Your Carrier To Bomb!";
         createButton("green", "Confirm", new Point(5, 60), handleConfirmButton);
         createButton("red", "Reset", new Point(5, 80), handleResetButton);
         createButton("red", "Cancel", new Point(5, 100), handleCancelButton);
@@ -487,9 +487,10 @@ const game = (): Game => {
         break;
       }
       case "attack-airstrike": {
-        currentScene.flushZIndex(zIndexes.reticule, zIndexes.highlightTiles);
+        currentScene.flushZIndex(zIndexes.reticule, zIndexes.highlightTiles, zIndexes.altHighlightTiles);
         addAppearingTextToScene(currentScene);
         addHighlightTilesToScene(currentScene);
+        addAltHighlightTilesToScene(currentScene);
         drawMouse();
         break;
       }
@@ -1096,8 +1097,42 @@ const game = (): Game => {
         mouse.isHoveringOverClickable = isHoveringOverClickable(checkPoint).found;
         if (isWithinBoardTiles(checkPoint)) {
           const tile = getTileAtLocation(checkPoint);
+          const { x, y } = tile;
+          const { xSize, ySize } = gameConfig.boardConfig;
           if (isWithinCarrierRange(tile)) {
-            //todo
+            const carrier = boards[playerTurn].getFleet().reduce((acc, cur) => {
+              if (cur.ship.shipType === "carrier") {
+                return cur;
+              } else {
+                return acc;
+              }
+            });
+            const consideredTiles = [];
+            const orientation = carrier.ship.orientation;
+            if (orientation === "NS") {
+              consideredTiles.push(
+                new Point(x, y - 3 < 0 ? ySize + (y - 3) : y - 3),
+                new Point(x, y - 2 < 0 ? ySize + (y - 2) : y - 2),
+                new Point(x, y - 1 < 0 ? ySize + (y - 1) : y - 1),
+                new Point(x, y),
+                new Point(x, y + 1 >= ySize ? ySize - (y + 1) : y + 1),
+                new Point(x, y + 2 >= ySize ? ySize - (y + 2) : y + 2),
+                new Point(x, y + 3 >= ySize ? ySize - (y + 3) : y + 3)
+              );
+            } else {
+              consideredTiles.push(
+                new Point(x - 3 < 0 ? xSize + (x - 3) : x - 3, y),
+                new Point(x - 2 < 0 ? xSize + (x - 2) : x - 2, y),
+                new Point(x - 1 < 0 ? xSize + (x - 1) : x - 1, y),
+                new Point(x, y),
+                new Point(x + 1 >= xSize ? xSize - (x + 1) : x + 1, y),
+                new Point(x + 2 >= xSize ? xSize - (x + 2) : x + 2, y),
+                new Point(x + 3 >= xSize ? xSize - (x + 3) : x + 3, y)
+              );
+            }
+            consideredTiles.forEach((tile) => {
+              altHighlightTiles.push(tile.deepCopy());
+            });
           }
         }
       }
@@ -1812,7 +1847,7 @@ const game = (): Game => {
       case "airstrike": {
         transformTextToDisplayableFormat(
           appearingTextToDisplay,
-          `Requires Carrier: ~Start A Bombing Run Along The Path Of Your Carrier (6 Tiles). ~ ~${CooldownLimits.airstrike} Turn Cooldown.`,
+          `Requires Carrier: ~Start A Bombing Run Along The Path Of Your Carrier (7 Tiles). ~ ~${CooldownLimits.airstrike} Turn Cooldown.`,
           canvas.views.drawer.sections[1],
           offsets
         );
